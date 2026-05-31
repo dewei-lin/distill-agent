@@ -4,14 +4,11 @@
 
 ---
 
-## Motivation
+## What is **Distill Agent**?
 
-No one drinks straight from the river. Between the source and the tap sits a treatment plant — screening out debris, filtering sediment, neutralizing contaminants — and the whole process is monitored and recorded so anyone can verify the water is safe. Raw data deserves the same respect. Every statistical conclusion is downstream of the dataset it was computed on, yet analysts routinely pour straight from the source: untyped columns, sentinel values masquerading as numbers, duplicated rows, silent gaps. Whatever flows in, flows through.
+Data is to data scientists what water is to life — and just as you can't survive on contaminated water, you can't build reliable models on dirty data. Yet real-world data is almost always messy, and cleaning it is consistently the most time-consuming step in any analysis pipeline. Worse, even well-executed cleaning is rarely reproducible: decisions go undocumented, analysts disagree on edge cases, and after three months nobody can reconstruct the choices they made themselves.
 
-The trouble is that data cleaning — the treatment plant of analysis — is consistently the most time-consuming step in the pipeline, often eating 60–80% of total project time, especially when datasets carry many variables. And despite mattering enormously, it is one of the least reproducible steps: two analysts cleaning the same dataset make different undocumented judgment calls, arrive at different outputs, and neither can fully explain what they did six months later. Today's options force an unhappy trade-off — clean everything by hand in messy, ad hoc code, or over-automate and lose the audit trail. Neither is good enough for serious statistical work.
-
-**Distill Agent** builds the treatment plant properly. AI handles the mechanical, pattern-detection work autonomously — writing and executing the code — while the human analyst keeps full control over the judgment calls that require domain knowledge. And like a well-run water utility, nothing happens in the dark: every decision, automated or human, is logged, justified, and compiled into a reproducible set of outputs — including a standalone Python script that regenerates the cleaned data with no agent in the loop. Clean data you can drink, and a record of exactly how it was treated.
-
+We built **Distill Agent** to be the distillation device for data. AI handles the mechanical, pattern-detection work **autonomously** — writing and executing the code — while the human analyst keeps **full control** over the judgment calls that require domain knowledge. And like a well-run water utility, nothing happens in the dark: every decision, automated or human, is **logged**, **justified**, and compiled into a **reproducible** set of outputs — including a standalone Python script that regenerates the cleaned data with no agent in the loop. Clean data you can drink, and a record of exactly how it was treated.
 ---
 
 ## Core Concept: Human-in-the-Loop Data Cleaning
