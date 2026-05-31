@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import web.backend.app; import web.backend.sessions; print\\('OK'\\)\")",
+      "Bash(python -m py_compile web/backend/app.py web/backend/sessions.py)",
+      "Bash(python -m py_compile distill/script_gen.py)",
+      "Bash(python -m py_compile web/backend/ingest.py)",
+      "Bash(python -m py_compile web/backend/ingest.py web/backend/sessions.py web/backend/app.py)",
+      "Bash(python -m py_compile web/backend/ingest.py web/backend/app.py)",
+      "Bash(python -c \"import distill.script_gen; print\\('OK'\\)\")",
+      "Bash(python -c \"import distill.outputs; print\\('OK'\\)\")",
+      "Bash(python -m py_compile web/backend/app.py)",
+      "Bash(python -c \"import distill.outputs; print\\('outputs OK'\\)\")",
+      "Bash(python -m py_compile web/backend/sessions.py web/backend/app.py)",
+      "Bash(python -c \"import distill.outputs, distill.script_gen; print\\('OK'\\)\")",
+      "Read(//private/tmp/**)"
+    ]
+  }
+}

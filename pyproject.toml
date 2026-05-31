@@ -1,0 +1,103 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "distill-agent"
+version = "0.1.0"
+description = "AI-assisted reproducible data cleaning agent with human-in-the-loop decision cards. STAI-X Challenge 2026 — Award C."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [
+  { name = "Dewei Lin", email = "lindewei0423@gmail.com" },
+]
+keywords = [
+  "data-cleaning",
+  "statistics",
+  "ai-agent",
+  "claude",
+  "claude-code",
+  "reproducibility",
+  "human-in-the-loop",
+  "stai-x",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+]
+
+dependencies = [
+  # Core data stack
+  "pandas>=2.1",
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "scikit-learn>=1.4",
+
+  # File IO
+  "openpyxl>=3.1",       # .xlsx
+  "pyreadstat>=1.2",     # .sav (SPSS), .dta (Stata), .sas7bdat
+  "chardet>=5.2",        # encoding detection
+
+  # Report rendering
+  "jinja2>=3.1",         # Markdown report templating
+  "reportlab>=4.1",      # PDF report
+  "matplotlib>=3.8",     # plots embedded in report
+
+]
+
+[project.optional-dependencies]
+web = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+  "python-multipart>=0.0.9",   # file uploads
+  "sse-starlette>=2.1",        # server-sent events
+  "anthropic>=0.39",
+  "python-dotenv>=1.0",
+  "pydantic>=2.6",             # FastAPI request/response models
+  "pypdf>=4.0",                # extract text from PDF documentation uploads
+]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=4.1",
+  "ruff>=0.4",
+  "mypy>=1.9",
+]
+
+[project.scripts]
+distill = "distill.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/lindewei0423/distill-agent"
+Repository = "https://github.com/lindewei0423/distill-agent"
+Issues = "https://github.com/lindewei0423/distill-agent/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["distill*"]
+exclude = ["tests*", "examples*", "web*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "W"]
+ignore = ["E501"]  # handled by formatter
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+ignore_missing_imports = true

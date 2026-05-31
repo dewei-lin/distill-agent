@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataClean Agent — UI preview</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#fff;--bg2:#f6f8fa;--bg3:#eef2f6;
+    --text:#1a1f24;--text2:#5b6b7a;--text3:#8a96a3;
+    --border:#e2e8ed;--border2:#cdd6df;
+    --blue:#185FA5;--blue-bg:#E6F1FB;--blue-line:#B5D4F4;
+    --green:#0F6E56;--green-bg:#E1F5EE;
+    --amber:#8a5a12;--amber-bg:#FAEEDA;--amber-line:#FAC775;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font);font-size:14px;color:var(--text);background:var(--bg2);}
+  .banner{background:var(--blue);color:#fff;font-size:12px;padding:6px 16px;text-align:center;}
+  .app{display:grid;grid-template-columns:248px 1fr 312px;height:calc(100vh - 29px);}
+
+  .sidebar{background:var(--bg);border-right:1px solid var(--border);display:flex;flex-direction:column;}
+  .side-head{padding:16px;border-bottom:1px solid var(--border);}
+  .side-head h2{font-size:14px;font-weight:650;}
+  .side-head .ds{font-size:12px;color:var(--text2);margin-top:3px;}
+  .side-label{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.06em;
+    text-transform:uppercase;padding:14px 16px 6px;}
+  .stage{display:flex;align-items:center;gap:9px;padding:7px 16px;font-size:13px;}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--border2);}
+  .dot.done{background:var(--green);}
+  .dot.active{background:var(--blue);box-shadow:0 0 0 3px var(--blue-bg);}
+  .stage.done .lbl{color:var(--green);}
+  .stage.active .lbl{color:var(--text);font-weight:650;}
+  .stage .lbl{color:var(--text2);}
+  .side-stats{margin:6px 16px;padding:10px;background:var(--bg2);border-radius:6px;
+    font-size:12px;color:var(--text2);line-height:1.7;}
+  .side-foot{margin-top:auto;padding:12px 16px;border-top:1px solid var(--border);}
+  .outputs{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .outputs span{font-size:11px;padding:7px 6px;border:1px solid var(--border2);
+    border-radius:6px;text-align:center;color:var(--text3);background:var(--bg);}
+
+  .chat{display:flex;flex-direction:column;background:var(--bg2);overflow:hidden;}
+  .chat-head{padding:13px 18px;border-bottom:1px solid var(--border);background:var(--bg);
+    display:flex;align-items:center;gap:8px;}
+  .chat-head h2{font-size:14px;font-weight:650;}
+  .pill{margin-left:auto;font-size:11px;padding:3px 9px;border-radius:20px;
+    background:var(--blue-bg);color:var(--blue);font-weight:600;}
+  .chat-body{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:13px;}
+  .msg{max-width:88%;}
+  .msg .who{font-size:10px;color:var(--text3);margin:0 4px 3px;font-weight:600;}
+  .bubble{padding:10px 13px;border-radius:10px;font-size:13px;line-height:1.55;
+    background:var(--bg);border:1px solid var(--border);}
+  .bubble b{font-weight:650;}
+  .info-line{font-size:12px;color:var(--text3);}
+  .info-line::before{content:"• ";}
+  .card{border:1px solid var(--blue-line);border-radius:10px;background:var(--bg);
+    margin-top:8px;overflow:hidden;}
+  .ctop{padding:10px 13px 8px;}
+  .ctitle{font-size:12px;font-weight:700;color:var(--blue);}
+  .cvar{font-family:ui-monospace,Menlo,monospace;background:var(--blue-bg);
+    padding:1px 6px;border-radius:4px;}
+  .cbody{font-size:12.5px;color:var(--text2);line-height:1.5;margin-top:5px;}
+  .cwhy{font-size:12px;color:var(--text3);margin-top:5px;font-style:italic;}
+  .cact{display:flex;gap:6px;padding:9px 13px;background:var(--bg2);
+    border-top:1px solid var(--border);flex-wrap:wrap;}
+  .cbtn{font-size:11.5px;padding:5px 11px;border-radius:6px;border:1px solid var(--border2);
+    background:var(--bg);font-weight:600;}
+  .cbtn.confirm{background:var(--green-bg);color:var(--green);border-color:#9FE1CB;}
+  .cbtn.override{background:var(--amber-bg);color:var(--amber);border-color:var(--amber-line);}
+  .cbtn.inspect{color:var(--text2);}
+  .done-tag{font-size:11px;font-weight:700;padding:9px 13px;border-top:1px solid var(--border);
+    color:var(--green);}
+  .chat-input{padding:11px 16px;border-top:1px solid var(--border);background:var(--bg);
+    display:flex;gap:8px;}
+  .chat-input input{flex:1;padding:9px 12px;border:1px solid var(--border2);
+    border-radius:7px;font-size:13px;}
+  .chat-input button{padding:9px 16px;border-radius:6px;border:1px solid var(--blue);
+    background:var(--blue);color:#fff;font-size:13px;font-weight:600;}
+
+  .insp{background:var(--bg);border-left:1px solid var(--border);display:flex;flex-direction:column;}
+  .insp-head{padding:13px 14px;border-bottom:1px solid var(--border);}
+  .insp-head h3{font-size:13px;font-weight:650;}
+  .tabs{display:flex;flex-wrap:wrap;gap:4px;padding:8px 12px;border-bottom:1px solid var(--border);}
+  .tab{font-size:10.5px;padding:3px 8px;border-radius:20px;border:1px solid var(--border);
+    background:var(--bg2);color:var(--text2);}
+  .tab.active{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-line);font-weight:650;}
+  .insp-body{flex:1;overflow-y:auto;padding:13px;}
+  .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;}
+  .stat{background:var(--bg2);border-radius:6px;padding:8px 6px;text-align:center;}
+  .stat .v{font-size:14px;font-weight:650;}
+  .stat .k{font-size:10px;color:var(--text2);margin-top:2px;}
+  .miss-bar{margin:10px 0;}
+  .miss-bar .lab{display:flex;justify-content:space-between;font-size:11px;
+    color:var(--text2);margin-bottom:4px;}
+  .track{height:7px;border-radius:4px;background:var(--bg3);}
+  .fill{height:7px;border-radius:4px;background:#EF9F27;width:18.6%;}
+  .chart-lbl{font-size:11px;color:var(--text2);margin:8px 0 5px;}
+</style>
+</head>
+<body>
+<div class="banner">Static preview of the DataClean Agent web UI — the live app is in <code>web/</code></div>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="side-head">
+      <h2>DataClean Agent</h2>
+      <div class="ds">adult_sample.csv</div>
+    </div>
+    <div class="side-label">Pipeline</div>
+    <div class="stage done"><div class="dot done"></div><span class="lbl">Profiling pass</span></div>
+    <div class="stage done"><div class="dot done"></div><span class="lbl">Format resolution</span></div>
+    <div class="stage active"><div class="dot active"></div><span class="lbl">Missingness decisions</span></div>
+    <div class="stage"><div class="dot"></div><span class="lbl">Outlier detection</span></div>
+    <div class="stage"><div class="dot"></div><span class="lbl">Duplicate check</span></div>
+    <div class="stage"><div class="dot"></div><span class="lbl">Feature engineering</span></div>
+    <div class="side-label">Session</div>
+    <div class="side-stats">6,000 rows · 15 variables<br>22 decisions logged<br>target: <b>income</b></div>
+    <div class="side-foot">
+      <div class="side-label" style="padding:0 0 6px;">Outputs</div>
+      <div class="outputs">
+        <span>Clean data</span><span>Report</span>
+        <span>Flowchart</span><span>Log (JSON)</span>
+        <span>Script</span><span>PDF</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="chat">
+    <div class="chat-head">
+      <h2>Cleaning session</h2>
+      <span class="pill">Missingness decisions</span>
+    </div>
+    <div class="chat-body">
+      <div class="msg">
+        <div class="who">DataClean Agent</div>
+        <div class="bubble">I profiled <b>15 variables</b> across <b>6,000 rows</b>.
+          3 variables have missing values; 6 type/quality flags were raised.
+          Moving to format resolution.</div>
+      </div>
+      <div class="msg">
+        <div class="who">DataClean Agent</div>
+        <div class="bubble">Format resolution applied <b>19 mechanical fixes</b>
+          automatically — these need no review:
+          <div class="info-line">6 column names standardized to snake_case</div>
+          <div class="info-line">leading/trailing whitespace stripped from 9 columns</div>
+          <div class="info-line">831 '?' missing-sentinels converted to NaN</div>
+          <div class="info-line">6 columns coerced from string to numeric</div></div>
+      </div>
+      <div class="msg" style="max-width:92%;">
+        <div class="who">DataClean Agent</div>
+        <div class="bubble"><b>Missingness decisions</b> — 3 decisions need your
+          judgment. Confirm my recommendation, override it, or inspect the variable.
+          <div class="card">
+            <div class="ctop">
+              <div class="ctitle">⚖ Decision · <span class="cvar">workclass</span></div>
+              <div class="cbody">365 of 6,000 rows missing (6.1%). Pattern:
+                <b>MAR</b> — missingness varies with occupation and age.<br>
+                <b>Recommended:</b> impute with KNN (k=5).</div>
+              <div class="cwhy">KNN imputation uses neighbouring rows to pick a
+                plausible category, reflecting the MAR structure.</div>
+            </div>
+            <div class="cact">
+              <button class="cbtn confirm">✓ Confirm</button>
+              <button class="cbtn override">✎ Override</button>
+              <button class="cbtn inspect">⤢ Inspect</button>
+            </div>
+          </div>
+          <div class="card" style="opacity:.72;">
+            <div class="ctop">
+              <div class="ctitle">⚖ Decision · <span class="cvar">native_country</span></div>
+              <div class="cbody">99 of 6,000 rows missing (1.7%). Pattern: <b>MAR</b>.<br>
+                <b>Recommended:</b> drop the 99 affected rows.</div>
+            </div>
+            <div class="done-tag">✓ Confirmed — drop_rows</div>
+          </div></div>
+      </div>
+      <div class="msg" style="align-self:flex-end;">
+        <div class="who" style="text-align:right;">You</div>
+        <div class="bubble" style="background:var(--blue);color:#fff;border:none;">
+          Why is workclass classified as MAR rather than MCAR?</div>
+      </div>
+      <div class="msg">
+        <div class="who">DataClean Agent</div>
+        <div class="bubble">The missing-rate of <b>workclass</b> is not flat across
+          the data — it rises noticeably in rows where <code>occupation</code> is also
+          blank (spread 0.34). That association with another observed variable is the
+          signature of MAR. Under MAR, a model-based imputer like KNN recovers more
+          plausible values than mode-filling, which is why it is recommended here.</div>
+      </div>
+    </div>
+    <div class="chat-input">
+      <input type="text" placeholder="Ask the agent about a variable…">
+      <button>Send</button>
+    </div>
+  </main>
+
+  <aside class="insp">
+    <div class="insp-head"><h3>Variable inspector</h3></div>
+    <div class="tabs">
+      <span class="tab">age</span><span class="tab active">workclass</span>
+      <span class="tab">fnlwgt</span><span class="tab">education</span>
+      <span class="tab">capital_gain</span><span class="tab">hours_per_week</span>
+    </div>
+    <div class="insp-body">
+      <div class="miss-bar">
+        <div class="lab"><span>Missing</span><span>6.1% (365 rows)</span></div>
+        <div class="track"><div class="fill" style="width:6.1%;"></div></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="v">9</div><div class="k">unique</div></div>
+        <div class="stat"><div class="v">5,635</div><div class="k">present</div></div>
+        <div class="stat"><div class="v">365</div><div class="k">missing</div></div>
+      </div>
+      <div class="chart-lbl">Top values</div>
+      <canvas id="hist" height="150"></canvas>
+    </div>
+  </aside>
+
+</div>
+<script>
+new Chart(document.getElementById("hist"),{type:"bar",
+  data:{labels:["Private","Self-emp","Local-gov","State-gov","Federal-gov","Other"],
+    datasets:[{data:[4197,690,402,257,184,270],
+      backgroundColor:"#378ADDcc",borderColor:"#185FA5",borderWidth:.5,borderRadius:2}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{ticks:{font:{size:8}},grid:{display:false}},
+      y:{ticks:{font:{size:8}},grid:{color:"rgba(0,0,0,.05)"}}}}});
+</script>
+</body>
+</html>

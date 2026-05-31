@@ -1,0 +1,2482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Distill Agent</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#ffffff; --bg2:#f6f8fa; --bg3:#eef2f6;
+    --text:#1a1f24; --text2:#5b6b7a; --text3:#8a96a3;
+    --border:#e2e8ed; --border2:#cdd6df;
+    --blue:#185FA5; --blue-bg:#E6F1FB; --blue-line:#B5D4F4;
+    --green:#0F6E56; --green-bg:#E1F5EE; --green-line:#9FE1CB;
+    --amber:#8a5a12; --amber-bg:#FAEEDA; --amber-line:#FAC775;
+    --red:#A32D2D; --red-bg:#FCEBEB;
+    --radius:8px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{font-family:var(--font);font-size:14px;color:var(--text);background:var(--bg2);}
+
+  /* ---------- landing (upload + feature showcase) ---------- */
+  .landing{display:grid;grid-template-columns:1fr 1fr;height:100vh;overflow:hidden;}
+  .landing.hidden{display:none;}
+  .landing-brand{margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);}
+  .landing-brand-tag{font-size:11px;font-weight:700;color:var(--green);letter-spacing:.08em;
+    text-transform:uppercase;margin-bottom:9px;}
+  .landing-brand-headline{font-size:18px;font-weight:700;color:var(--text);line-height:1.35;margin-bottom:7px;}
+  .landing-brand-sub{font-size:12px;color:var(--text2);line-height:1.65;}
+  .landing-left{display:flex;flex-direction:column;justify-content:flex-start;
+    padding:32px 44px 32px;overflow-y:auto;border-right:1px solid var(--border);background:var(--bg);}
+  .landing-right{display:flex;flex-direction:column;padding:28px 32px 32px;
+    overflow-y:auto;background:var(--bg2);}
+  .landing-section-label{font-size:11px;font-weight:700;color:var(--text3);
+    letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;}
+  .feature-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .feature-group{margin-bottom:18px;}
+  .feature-tile{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;
+    background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);}
+  .feature-tile:hover{border-color:var(--border2);}
+  .feature-icon{font-size:14px;color:var(--green);flex-shrink:0;margin-top:1px;font-weight:700;line-height:1.3;}
+  .feature-name{font-size:12px;font-weight:650;color:var(--text);}
+  .feature-desc{font-size:10.5px;color:var(--text2);margin-top:2px;line-height:1.45;}
+  /* carousel */
+  .carousel-wrap{position:relative;width:100%;aspect-ratio:1.84;flex-shrink:0;
+    border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);
+    background:var(--bg3);}
+  .carousel-track{display:flex;height:100%;transition:transform .45s cubic-bezier(.4,0,.2,1);}
+  .carousel-slide{min-width:100%;height:100%;flex-shrink:0;position:relative;}
+  .carousel-slide img{width:100%;height:100%;object-fit:contain;display:block;}
+  .carousel-caption{position:absolute;top:11px;right:13px;
+    background:rgba(26,31,36,.62);color:#fff;font-size:11px;font-weight:600;
+    padding:4px 11px;border-radius:20px;backdrop-filter:blur(4px);
+    pointer-events:none;letter-spacing:.01em;}
+  .carousel-dots{position:absolute;bottom:10px;right:12px;display:flex;gap:6px;align-items:center;}
+  .carousel-dot{width:7px;height:7px;border-radius:50%;background:rgba(24,95,165,.22);
+    cursor:pointer;border:none;padding:0;flex-shrink:0;transition:.15s;}
+  .carousel-dot.active{background:var(--blue);transform:scale(1.15);}
+  .carousel-dot:hover{background:rgba(24,95,165,.6);}
+  .section-head{font-size:13px;font-weight:700;color:var(--text);margin:16px 0 3px;}
+  .section-head:first-of-type{margin-top:0;}
+  .section-hint{font-size:11.5px;color:var(--text3);margin-bottom:7px;line-height:1.5;}
+  .dz-label{font-size:12px;font-weight:700;color:var(--text2);margin:14px 0 6px;}
+  .dz-label .opt{font-weight:500;color:var(--text3);}
+  .drop{border:1.5px dashed var(--border2);border-radius:var(--radius);
+    padding:16px;text-align:center;cursor:pointer;transition:.15s;}
+  .drop:hover,.drop.hot{border-color:var(--blue);background:var(--blue-bg);}
+  .drop .big{font-size:13px;font-weight:550;}
+  .drop .small{font-size:11px;color:var(--text2);margin-top:3px;}
+  .filelist{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .chip{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;
+    background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-line);
+    border-radius:20px;padding:3px 6px 3px 10px;}
+  .chip.doc{background:var(--green-bg);color:var(--green);border-color:var(--green-line);}
+  .chip.other{background:var(--bg3);color:var(--text2);border-color:var(--border2);}
+  .chip x{cursor:pointer;font-style:normal;font-weight:700;width:15px;height:15px;
+    line-height:14px;border-radius:50%;text-align:center;background:rgba(0,0,0,.07);}
+  .chip x:hover{background:rgba(0,0,0,.16);}
+  .field{margin-top:14px;}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px;}
+  .field input{width:100%;padding:8px 10px;border:1px solid var(--border2);
+    border-radius:6px;font-size:13px;font-family:var(--font);}
+  .btn{padding:9px 16px;border-radius:6px;border:1px solid var(--blue);
+    background:var(--blue);color:#fff;font-size:13px;font-weight:600;cursor:pointer;
+    font-family:var(--font);transition:.12s;}
+  .btn:hover{filter:brightness(1.08);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .btn.ghost{background:var(--bg);color:var(--text);border-color:var(--border2);}
+  .btn.proceed{background:var(--green);border-color:var(--green);color:#fff;}
+  .btn.proceed:hover{filter:brightness(1.1);}
+  .btn.proceed:disabled{opacity:.5;cursor:not-allowed;}
+  .btn.primary{width:100%;margin-top:18px;padding:11px;}
+  .err{color:var(--red);font-size:12px;margin-top:10px;}
+  .or-row{display:flex;align-items:center;gap:10px;margin:16px 0 4px;
+    color:var(--text3);font-size:11px;font-weight:600;}
+  .or-row::before,.or-row::after{content:"";flex:1;height:1px;background:var(--border);}
+  .sample-btn{width:100%;margin-top:8px;}
+  .fmt-hint{font-size:11px;color:var(--text3);margin-top:4px;margin-bottom:8px;line-height:1.5;}
+
+  /* ---------- app shell ---------- */
+  .app{display:grid;grid-template-columns:248px 6px 1fr 6px 1fr;height:100vh;}
+  .app.hidden{display:none;}
+  .gutter{background:var(--border);cursor:col-resize;position:relative;}
+  .gutter:hover,.gutter.dragging{background:var(--blue-line);}
+  .gutter::after{content:"";position:absolute;top:50%;left:50%;
+    transform:translate(-50%,-50%);width:2px;height:30px;border-radius:1px;
+    background:var(--border2);}
+  .gutter:hover::after,.gutter.dragging::after{background:var(--blue);}
+
+  /* sidebar */
+  .sidebar{background:var(--bg);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;overflow:hidden;}
+  .side-head{padding:16px 16px 12px;border-bottom:1px solid var(--border);}
+  .side-head h2{font-size:14px;font-weight:650;cursor:pointer;user-select:none;}
+  .side-head h2:hover{opacity:.7;}
+  .side-head .ds{font-size:12px;color:var(--text2);margin-top:3px;word-break:break-all;}
+  .side-scroll{overflow-y:auto;flex:1;}
+  .side-label{font-size:10px;font-weight:700;color:var(--text3);
+    letter-spacing:.06em;text-transform:uppercase;padding:14px 16px 6px;}
+  .stage{display:flex;align-items:center;gap:9px;padding:7px 16px;font-size:13px;}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--border2);flex-shrink:0;}
+  .dot.done{background:var(--green);}
+  .dot.active{background:var(--blue);box-shadow:0 0 0 3px var(--blue-bg);}
+  .stage.done .lbl{color:var(--green);}
+  .stage.active .lbl{color:var(--text);font-weight:650;}
+  .stage .lbl{color:var(--text2);}
+  .side-stats{margin:6px 16px;padding:10px;background:var(--bg2);
+    border-radius:6px;font-size:12px;color:var(--text2);line-height:1.7;}
+  .side-files{margin:0 16px;font-size:11.5px;color:var(--text2);line-height:1.7;}
+  .side-files .f{display:block;word-break:break-all;}
+  .side-foot{padding:12px 16px;border-top:1px solid var(--border);}
+  .outputs{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .outputs a{font-size:11px;padding:7px 6px;border:1px solid var(--border2);
+    border-radius:6px;text-align:center;text-decoration:none;color:var(--blue);
+    background:var(--bg);font-weight:600;}
+  .outputs a:hover{background:var(--blue-bg);}
+  .outputs a.all{grid-column:1/3;background:var(--blue);color:#fff;border-color:var(--blue);}
+
+  /* chat */
+  .chat{display:flex;flex-direction:column;background:var(--bg2);overflow:hidden;}
+  .chat-head{padding:13px 18px;border-bottom:1px solid var(--border);
+    background:var(--bg);display:flex;align-items:center;gap:8px;}
+  .chat-head h2{font-size:14px;font-weight:650;}
+  .pill{margin-left:auto;font-size:11px;padding:3px 9px;border-radius:20px;
+    background:var(--blue-bg);color:var(--blue);font-weight:600;}
+  .chat-body{flex:1;overflow-y:auto;padding:18px;display:flex;
+    flex-direction:column;gap:13px;}
+  .msg{max-width:88%;}
+  .msg.agent{align-self:flex-start;}
+  .msg.user{align-self:flex-end;}
+  .msg .who{font-size:10px;color:var(--text3);margin:0 4px 3px;font-weight:600;}
+  .bubble{padding:10px 13px;border-radius:10px;font-size:13px;line-height:1.55;}
+  .msg.agent .bubble{background:var(--bg);border:1px solid var(--border);}
+  .msg.user .bubble{background:var(--blue);color:#fff;}
+  .bubble b{font-weight:650;}
+
+  .card{border:1px solid var(--blue-line);border-radius:10px;background:var(--bg);
+    margin-top:8px;overflow:hidden;}
+  .card .ctop{padding:11px 13px 9px;}
+  .card .ctitle{font-size:12px;font-weight:700;color:var(--blue);
+    display:flex;align-items:center;gap:6px;}
+  .card .cvar{font-family:ui-monospace,Menlo,monospace;background:var(--blue-bg);
+    padding:1px 6px;border-radius:4px;}
+  .card .cbody{font-size:12.5px;color:var(--text);line-height:1.5;margin-top:6px;}
+  .card .cwhy{font-size:12px;color:var(--text2);margin-top:5px;line-height:1.5;}
+  .card .cbody b,.card .cwhy b{color:var(--text);}
+  .card .cact{padding:10px 13px;background:var(--bg2);border-top:1px solid var(--border);}
+  .tier1{display:flex;gap:7px;flex-wrap:wrap;}
+  .cbtn{font-size:11.5px;padding:6px 11px;border-radius:6px;cursor:pointer;
+    border:1px solid var(--border2);background:var(--bg);font-weight:600;
+    font-family:var(--font);transition:transform .1s,opacity .1s;}
+  .cbtn:hover{filter:brightness(.97);}
+  .cbtn:active{transform:scale(.93);opacity:.7;}
+  @keyframes chip-send{
+    0%  {transform:scale(1);opacity:1;}
+    35% {transform:scale(.88);opacity:.5;}
+    100%{transform:scale(1);opacity:0;}
+  }
+  .cbtn.chip-sending{animation:chip-send .28s ease forwards;pointer-events:none;}
+  @keyframes blink{50%{opacity:0;}}
+  .stream-cursor::after{content:"▋";font-size:.9em;animation:blink .7s step-start infinite;}
+  .cbtn.accept{display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+    background:var(--green-bg);border-color:var(--green-line);text-align:left;flex:1;
+    min-width:200px;}
+  .cbtn.accept .ck-main{color:var(--green);font-size:12px;font-weight:700;}
+  .cbtn.accept .ck-sub{color:var(--text2);font-size:11px;font-weight:500;}
+  .cbtn.other{background:var(--amber-bg);color:var(--amber);border-color:var(--amber-line);}
+  .cbtn.inspect{color:var(--text2);}
+  .opts{margin-top:9px;border-top:1px dashed var(--border2);padding-top:9px;}
+  .opts-h{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;}
+  .opt{display:block;width:100%;text-align:left;cursor:pointer;font-family:var(--font);
+    background:var(--bg);border:1px solid var(--border2);border-radius:7px;
+    padding:8px 10px;margin-bottom:6px;}
+  .opt:hover{border-color:var(--amber-line);background:var(--amber-bg);}
+  .opt .opt-l{display:block;font-size:12px;font-weight:700;color:var(--text);}
+  .opt .opt-d{display:block;font-size:11px;color:var(--text2);margin-top:2px;line-height:1.4;}
+  .card.resolved{opacity:.78;}
+  .card.resolved .cact{display:none;}
+  .card .done-tag{font-size:11.5px;font-weight:700;padding:9px 13px;
+    border-top:1px solid var(--border);}
+  .card .done-tag.c{color:var(--green);background:var(--green-bg);}
+  .card .done-tag.o{color:var(--amber);background:var(--amber-bg);}
+  .info-line{font-size:12px;color:var(--text3);padding:2px 4px;}
+  .info-line::before{content:"\2022  ";}
+
+  .stage-cta{align-self:center;margin:6px 0;}
+  .chat-input{padding:11px 16px;border-top:1px solid var(--border);
+    background:var(--bg);display:flex;gap:8px;}
+  .chat-input input{flex:1;padding:9px 12px;border:1px solid var(--border2);
+    border-radius:7px;font-size:13px;font-family:var(--font);}
+
+  /* inspector */
+  .insp{background:var(--bg);border-left:1px solid var(--border);
+    display:flex;flex-direction:column;overflow:hidden;}
+  .insp-head{padding:13px 14px;border-bottom:1px solid var(--border);}
+  .insp-head h3{font-size:13px;font-weight:650;}
+  .tabs{display:flex;flex-wrap:wrap;gap:4px;padding:8px 12px;
+    border-bottom:1px solid var(--border);max-height:104px;overflow-y:auto;}
+  .tab{font-size:10.5px;padding:3px 8px;border-radius:20px;cursor:pointer;
+    border:1px solid var(--border);background:var(--bg2);color:var(--text2);}
+  .tab.active{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-line);
+    font-weight:650;}
+  .insp-body{flex:1;overflow-y:auto;padding:13px;}
+  .insp-empty{color:var(--text3);font-size:12px;text-align:center;padding-top:40px;}
+  .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;}
+  .stat{background:var(--bg2);border-radius:6px;padding:8px 6px;text-align:center;}
+  .stat .v{font-size:14px;font-weight:650;}
+  .stat .k{font-size:10px;color:var(--text2);margin-top:2px;}
+  .miss-bar{margin:10px 0;}
+  .miss-bar .lab{display:flex;justify-content:space-between;font-size:11px;
+    color:var(--text2);margin-bottom:4px;}
+  .track{height:7px;border-radius:4px;background:var(--bg3);}
+  .fill{height:7px;border-radius:4px;background:var(--green);}
+  .chart-box{position:relative;width:100%;height:200px;margin-top:4px;}
+  .chart-lbl{font-size:11px;color:var(--text2);margin-bottom:5px;}
+  .toplist{margin-top:4px;}
+  .toprow{display:flex;justify-content:space-between;font-size:11.5px;
+    padding:3px 0;border-bottom:1px solid var(--border);}
+  .toprow .c{color:var(--text2);}
+
+  /* feature engineering panel */
+  .fe-panel{border:1px solid var(--border2);border-radius:10px;background:var(--bg);
+    padding:12px 14px;margin-top:8px;}
+  .fe-panel-head{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;}
+  .fe-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+  .fe-search{flex:0 0 130px;padding:7px 9px;border:1px solid var(--border2);
+    border-radius:6px;font-size:12px;font-family:var(--font);}
+  .fe-col-select{flex:1;min-width:120px;max-width:180px;padding:7px 9px;
+    border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:var(--font);}
+  .fe-op-select{flex:2;min-width:180px;padding:7px 9px;
+    border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:var(--font);}
+  .fe-params{margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    font-size:12px;color:var(--text2);}
+  .fe-params input[type=number]{width:56px;padding:4px 7px;
+    border:1px solid var(--border2);border-radius:5px;font-size:12px;font-family:var(--font);}
+  .fe-params label{display:flex;align-items:center;gap:4px;cursor:pointer;}
+  .fe-applied{margin-top:10px;display:flex;flex-wrap:wrap;gap:5px;}
+  .fe-tag{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;
+    background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-line);}
+
+  /* format selector (pre-finalize) */
+  .fmt-sel{border:1px solid var(--border2);border-radius:10px;background:var(--bg);
+    padding:14px 16px;}
+  .fmt-sel-head{font-size:13px;font-weight:650;color:var(--text);margin-bottom:12px;}
+  .fmt-btns{display:flex;gap:8px;flex-wrap:wrap;}
+  .fmt-btn{padding:9px 14px;border-radius:8px;border:1.5px solid var(--border2);
+    background:var(--bg);cursor:pointer;font-size:12.5px;font-weight:650;
+    font-family:var(--font);color:var(--text);display:flex;flex-direction:column;
+    align-items:flex-start;min-width:88px;transition:.12s;}
+  .fmt-btn:hover{border-color:var(--green-line);background:var(--green-bg);}
+  .fmt-btn.sel{border-color:var(--green);background:var(--green-bg);color:var(--green);}
+  .fmt-btn .fsub{font-size:10.5px;font-weight:400;color:var(--text3);margin-top:2px;}
+  .fmt-btn.sel .fsub{color:var(--green);}
+  .miss-note{font-size:11px;color:var(--text3);margin-top:8px;padding:4px 6px;
+    background:var(--bg3);border-radius:4px;}
+  /* companion key builder — variable chips */
+  .comp-key-builder{margin-top:10px;}
+  .comp-key-preview{font-family:monospace;font-size:13px;padding:7px 10px;
+    border-radius:6px;background:var(--bg2);border:1px solid var(--border);
+    color:var(--accent);min-height:32px;margin-bottom:8px;letter-spacing:.3px;}
+  .comp-col-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;}
+  .comp-chip{padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:600;
+    border:1.5px solid var(--border2);background:var(--bg);cursor:pointer;
+    color:var(--text2);transition:.1s;}
+  .comp-chip:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-bg);}
+  .comp-chip.active{border-color:var(--green);color:var(--green);background:var(--green-bg);}
+  .comp-sep-hint{font-size:11px;color:var(--text3);margin-top:4px;}
+  /* loading spinner on proceed buttons */
+  @keyframes btn-spin{to{transform:rotate(360deg);}}
+  .btn-loading{pointer-events:none;opacity:.7;}
+  .btn-loading::before{content:"";display:inline-block;width:13px;height:13px;
+    border:2px solid currentColor;border-top-color:transparent;border-radius:50%;
+    animation:btn-spin .6s linear infinite;margin-right:7px;vertical-align:middle;}
+  .var-desc{font-size:12px;color:var(--text);line-height:1.55;margin-bottom:10px;
+    padding:8px 10px;background:var(--bg2);border-radius:6px;border-left:3px solid var(--border2);}
+  .var-desc.from-docs{border-left-color:var(--green);}
+  .var-desc.ai-inferred{border-left-color:var(--amber);}
+  .desc-badge{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:3px;
+    margin-right:6px;vertical-align:middle;}
+  .desc-badge.doc{background:var(--green-bg);color:var(--green);}
+  .desc-badge.ai{background:var(--amber-bg);color:var(--amber);}
+  .upload-progress{height:4px;border-radius:2px;background:var(--bg3);margin-top:8px;display:none;}
+  .upload-progress-fill{height:4px;border-radius:2px;background:var(--green);width:0;transition:width .12s;}
+  .reopen-btn{margin-left:8px;font-size:10.5px;padding:2px 8px;border-radius:5px;
+    cursor:pointer;border:1px solid currentColor;background:transparent;
+    font-family:var(--font);font-weight:600;opacity:.75;}
+  .reopen-btn:hover{opacity:1;}
+  .cbtn.no-change{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);}
+  .cbtn.no-change:hover{background:var(--bg2);}
+  .c-vals{font-size:11.5px;margin-top:8px;padding:7px 10px;border-radius:5px;
+    background:var(--bg3);color:var(--text2);}
+  .c-vals.implausible{border-left:3px solid var(--red,#e05252);}
+  .c-vals.flagged{border-left:3px solid var(--amber);}
+  .c-val-list{font-family:monospace;color:var(--text);margin-left:4px;}
+  .c-bounds{color:var(--text3);margin-left:8px;font-size:10.5px;}
+</style>
+</head>
+<body>
+
+<!-- ========== LANDING ========== -->
+<div class="landing" id="landing">
+
+  <!-- LEFT: brand + upload form -->
+  <div class="landing-left">
+
+    <div class="landing-brand">
+      <div class="landing-brand-tag">DISTILL AGENT</div>
+      <div class="landing-brand-headline">Raw data goes in. Pure data comes out.</div>
+      <div class="landing-brand-sub">Most projects drown in messy, undocumented decisions. Distill filters the noise — walk through structured decision cards and export crystal-clear data with a full audit trail. No code, no residue.</div>
+    </div>
+
+    <div class="section-head">Data files</div>
+    <div class="fmt-hint">Supported: CSV, TSV, Excel, Parquet, JSON, SPSS (.sav),
+      Stata (.dta), SAS, ZIP (extracted automatically).
+      Images and other non-tabular files are kept as companion files.</div>
+    <div class="drop" id="dropData">
+      <div class="big">Drop data file(s) here</div>
+      <div class="small">or click to choose &mdash; you can add more than one</div>
+    </div>
+    <input type="file" id="fileData" multiple
+      accept=".csv,.tsv,.xlsx,.xls,.parquet,.json,.sav,.dta,.sas7bdat,.zip" style="display:none">
+    <div class="filelist" id="listData"></div>
+
+    <div class="section-head">Documentation <span style="font-size:11px;font-weight:500;color:var(--text3);">optional</span></div>
+    <div class="section-hint">Codebook, data dictionary, or README — the agent reads it
+      to understand your variables and load the data correctly.</div>
+    <div class="drop" id="dropDoc">
+      <div class="big">Drop documentation here</div>
+      <div class="small">PDF, Markdown, or plain text</div>
+    </div>
+    <input type="file" id="fileDoc" multiple
+      accept=".pdf,.md,.markdown,.txt,.rst,.docx" style="display:none">
+    <div class="filelist" id="listDoc"></div>
+
+    <div class="section-head">Notes <span style="font-size:11px;font-weight:500;color:var(--text3);">optional</span></div>
+    <div class="section-hint">Study description, known issues, outcome variable, etc.</div>
+    <input style="width:100%;padding:8px 10px;border:1px solid var(--border2);
+      border-radius:6px;font-size:13px;font-family:var(--font);margin-top:2px;" type="text"
+      id="noteField" placeholder="e.g. longitudinal survey, income is the outcome">
+
+    <button class="btn primary" id="startBtn" disabled>Start cleaning</button>
+    <div class="upload-progress" id="uploadProgress">
+      <div class="upload-progress-fill" id="uploadProgressFill"></div>
+    </div>
+    <div class="err" id="upErr"></div>
+
+    <div class="or-row">or</div>
+    <button class="btn ghost sample-btn" id="sampleBtn">
+      Try the sample dataset &mdash; UCI Adult Income
+    </button>
+  </div>
+
+  <!-- RIGHT: feature tiles + screenshot carousel -->
+  <div class="landing-right">
+
+    <div class="feature-group">
+      <div class="landing-section-label">What you get</div>
+      <div class="feature-grid">
+        <div class="feature-tile">
+          <div class="feature-icon">✦</div>
+          <div><div class="feature-name">Clean dataset</div>
+            <div class="feature-desc">CSV, Parquet, or Excel — ready for modelling or sharing.</div></div>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon">⟳</div>
+          <div><div class="feature-name">Reproducible code</div>
+            <div class="feature-desc">Standalone Python script that replays every decision.</div></div>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon">▤</div>
+          <div><div class="feature-name">Audit report</div>
+            <div class="feature-desc">Readable PDF + Markdown with every change justified.</div></div>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon">◉</div>
+          <div><div class="feature-name">Decision logs</div>
+            <div class="feature-desc">Structured JSON — feed to another AI or share with collaborators.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-group">
+      <div class="landing-section-label">Inside the session</div>
+      <div class="feature-grid">
+        <div class="feature-tile">
+          <div class="feature-icon">◌</div>
+          <div><div class="feature-name">Chat assistant</div>
+            <div class="feature-desc">Ask questions about your data or decisions mid-session.</div></div>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon">⊞</div>
+          <div><div class="feature-name">Variable inspector</div>
+            <div class="feature-desc">Live distribution, missingness, and per-column stats.</div></div>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon">◎</div>
+          <div><div class="feature-name">Zero coding</div>
+            <div class="feature-desc">All cleaning logic handled — no Python required.</div></div>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon">⚖</div>
+          <div><div class="feature-name">Human-in-the-loop</div>
+            <div class="feature-desc">Every judgment call surfaces as a decision card.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="carousel-wrap" id="carousel">
+      <div class="carousel-track" id="carouselTrack">
+        <div class="carousel-slide"><img src="assets/ss-inspector.png" alt="Variable inspector" loading="lazy"><div class="carousel-caption">Inspecting variables</div></div>
+        <div class="carousel-slide"><img src="assets/ss-cards.png" alt="Decision cards" loading="lazy"><div class="carousel-caption">Structured procedures</div></div>
+        <div class="carousel-slide"><img src="assets/ss-chat.png" alt="Chat assistant" loading="lazy"><div class="carousel-caption">Chat with AI</div></div>
+        <div class="carousel-slide"><img src="assets/ss-outputs.png" alt="Outputs panel" loading="lazy"><div class="carousel-caption">Clean downloadable output</div></div>
+      </div>
+      <div class="carousel-dots" id="carouselDots">
+        <button class="carousel-dot active" data-i="0"></button>
+        <button class="carousel-dot" data-i="1"></button>
+        <button class="carousel-dot" data-i="2"></button>
+        <button class="carousel-dot" data-i="3"></button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ========== APP ========== -->
+<div class="app hidden" id="app">
+
+  <!-- sidebar -->
+  <aside class="sidebar">
+    <div class="side-head">
+      <h2 onclick="startOver()" title="Back to home">Distill Agent</h2>
+      <div class="ds" id="dsName">&mdash;</div>
+    </div>
+    <div class="side-scroll">
+      <button id="startOverBtn" onclick="startOver()"
+        style="display:none;width:100%;margin-bottom:10px;padding:6px 0;font-size:11.5px;
+               font-weight:600;border-radius:6px;border:1px solid var(--border2);
+               background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--font);"
+        onmouseover="this.style.background='var(--bg2)'"
+        onmouseout="this.style.background='var(--bg)'">↺ Start Over</button>
+      <div class="side-label">Pipeline</div>
+      <div id="stageList"></div>
+      <div class="side-label">Session</div>
+      <div class="side-stats" id="sideStats">&mdash;</div>
+      <div class="side-label" id="filesLabel" style="display:none;">Files</div>
+      <div class="side-files" id="sideFiles"></div>
+    </div>
+    <div class="side-foot">
+      <div class="side-label" style="padding:0 0 6px;">Outputs</div>
+      <div class="outputs" id="outputs">
+        <span style="font-size:11px;color:var(--text3);grid-column:1/3;">
+          Available after finalize.</span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="gutter" id="g1" title="Drag to resize"></div>
+
+  <!-- chat -->
+  <main class="chat">
+    <div class="chat-head">
+      <h2>Cleaning session</h2>
+      <span class="pill" id="statusPill">Profiling</span>
+    </div>
+    <div class="chat-body" id="chatBody"></div>
+    <div class="chat-input">
+      <input type="text" id="chatInput" placeholder="Ask the agent about a variable&hellip;">
+      <button class="btn" id="chatSend">Send</button>
+    </div>
+  </main>
+
+  <div class="gutter" id="g2" title="Drag to resize"></div>
+
+  <!-- inspector -->
+  <aside class="insp">
+    <div class="insp-head"><h3>Variable inspector</h3></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="insp-body" id="inspBody">
+      <div class="insp-empty">Select a variable to inspect.</div>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+"use strict";
+const API = "";  // same origin
+const STAGES = ["profile","companion","format","duplicate","missingness","outlier","feature_engineering"];
+const STAGE_LABEL = {profile:"Profiling pass",companion:"Companion matching",
+  format:"Format resolution",duplicate:"Duplicate check",
+  missingness:"Missingness decisions",outlier:"Outlier detection",
+  feature_engineering:"Feature engineering"};
+const JUDGMENT = ["duplicate","missingness","outlier"];
+
+let S = { sid:null, stageIdx:0, columns:[], chart:null,
+          resolutions:{}, activeVar:null, profile:null, _cardQueues:{}, _cardQueueDone:{},
+          hasCompanions:false };
+
+/* ---------- resizable layout ---------- */
+const appEl=document.querySelector(".app");
+const LY={sidebar:248,chat:1,insp:1};
+function applyLayout(){
+  appEl.style.gridTemplateColumns=
+    `${LY.sidebar}px 6px ${LY.chat}fr 6px ${LY.insp}fr`;
+}
+function makeResizer(gutter,onDrag){
+  gutter.addEventListener("mousedown",e=>{
+    e.preventDefault();
+    gutter.classList.add("dragging");
+    document.body.style.cursor="col-resize";
+    document.body.style.userSelect="none";
+    function move(ev){onDrag(ev.clientX);}
+    function up(){
+      gutter.classList.remove("dragging");
+      document.body.style.cursor="";document.body.style.userSelect="";
+      window.removeEventListener("mousemove",move);
+      window.removeEventListener("mouseup",up);
+      if(S.chart)S.chart.resize();
+    }
+    window.addEventListener("mousemove",move);
+    window.addEventListener("mouseup",up);
+  });
+}
+makeResizer(document.getElementById("g1"),x=>{
+  const left=appEl.getBoundingClientRect().left;
+  LY.sidebar=Math.max(190,Math.min(460,x-left));
+  applyLayout();
+});
+makeResizer(document.getElementById("g2"),x=>{
+  const r=appEl.getBoundingClientRect();
+  const avail=r.width-LY.sidebar-12;
+  let chatPx=x-r.left-LY.sidebar-6;
+  chatPx=Math.max(300,Math.min(avail-300,chatPx));
+  LY.chat=Math.round(chatPx);LY.insp=Math.round(avail-chatPx);
+  applyLayout();
+});
+applyLayout();
+
+/* ---------- upload: data + documentation ---------- */
+let dataFiles=[], docFiles=[];
+const startBtn=document.getElementById("startBtn");
+
+function wireDrop(dropId,inputId,which){
+  const drop=document.getElementById(dropId), input=document.getElementById(inputId);
+  drop.onclick=()=>input.click();
+  drop.ondragover=e=>{e.preventDefault();drop.classList.add("hot");};
+  drop.ondragleave=()=>drop.classList.remove("hot");
+  drop.ondrop=e=>{e.preventDefault();drop.classList.remove("hot");
+    addFiles(which,e.dataTransfer.files);};
+  input.onchange=()=>{addFiles(which,input.files);input.value="";};
+}
+function addFiles(which,fileList){
+  const arr=which==="data"?dataFiles:docFiles;
+  for(const f of fileList){
+    if(!arr.some(x=>x.name===f.name&&x.size===f.size))arr.push(f);
+  }
+  renderLists();
+}
+function removeFile(which,idx){
+  if(which==="data")dataFiles.splice(idx,1);else docFiles.splice(idx,1);
+  renderLists();
+}
+function renderLists(){
+  renderOne("listData",dataFiles,"data");
+  renderOne("listDoc",docFiles,"doc");
+  startBtn.disabled=dataFiles.length===0;
+}
+const MAX_CHIPS=5;
+function renderOne(elId,arr,which){
+  const el=document.getElementById(elId);
+  el.innerHTML="";
+  arr.slice(0,MAX_CHIPS).forEach((f,i)=>{
+    const cls=which==="doc"?"chip doc":(isTabular(f.name)?"chip":"chip other");
+    const c=document.createElement("div");
+    c.className=cls;
+    c.innerHTML=`<span>${esc(f.name)}</span><x>&times;</x>`;
+    c.querySelector("x").onclick=()=>removeFile(which,i);
+    el.appendChild(c);
+  });
+  if(arr.length>MAX_CHIPS){
+    const more=document.createElement("div");
+    more.className="chip other";
+    more.textContent=`+${arr.length-MAX_CHIPS} more`;
+    el.appendChild(more);
+  }
+}
+function isTabular(name){
+  return /\.(csv|tsv|xlsx|xls|parquet|json|sav|dta|sas7bdat|zip)$/i.test(name);
+}
+wireDrop("dropData","fileData","data");
+wireDrop("dropDoc","fileDoc","doc");
+startBtn.onclick=startSession;
+document.getElementById("sampleBtn").onclick=trySample;
+
+/* ---------- screenshot carousel ---------- */
+(function(){
+  const track=document.getElementById("carouselTrack");
+  const dots=[...document.querySelectorAll(".carousel-dot")];
+  const N=4;
+
+  // Append a clone of slide 0 so the 4→1 wrap plays as a normal forward slide,
+  // then we snap back to the real slide 0 instantly after the transition ends.
+  track.appendChild(track.children[0].cloneNode(true));
+
+  let pos=0, timer=null; // pos can be 0..N (N = clone of 0)
+
+  function setPos(p, animate){
+    track.style.transition=animate?'transform .45s cubic-bezier(.4,0,.2,1)':'none';
+    track.style.transform=`translateX(-${p*100}%)`;
+    dots.forEach((d,j)=>d.classList.toggle("active",j===(p%N)));
+  }
+  track.addEventListener("transitionend",()=>{
+    if(pos===N){pos=0;setPos(0,false);}
+  });
+
+  function advance(){pos++;setPos(pos,true);}
+
+  dots.forEach(d=>d.addEventListener("click",()=>{
+    clearInterval(timer);pos=+d.dataset.i;setPos(pos,true);startAuto();
+  }));
+
+  function startAuto(){clearInterval(timer);timer=setInterval(advance,4500);}
+  const wrap=document.getElementById("carousel");
+  wrap.addEventListener("mouseenter",()=>clearInterval(timer));
+  wrap.addEventListener("mouseleave",startAuto);
+  startAuto();
+}());
+
+async function startSession(){
+  if(dataFiles.length===0)return;
+  startBtn.disabled=true;startBtn.textContent="Uploading… 0%";
+  const progressEl=document.getElementById("uploadProgress");
+  const fillEl=document.getElementById("uploadProgressFill");
+  progressEl.style.display="block";
+  fillEl.style.width="0%";
+  const fd=new FormData();
+  dataFiles.forEach(f=>fd.append("files",f));
+  docFiles.forEach(f=>fd.append("docs",f));
+  const note=document.getElementById("noteField").value.trim();
+  if(note)fd.append("note",note);
+  try{
+    const data=await new Promise((resolve,reject)=>{
+      const xhr=new XMLHttpRequest();
+      xhr.upload.onprogress=e=>{
+        if(e.lengthComputable){
+          const pct=Math.round(e.loaded/e.total*100);
+          fillEl.style.width=pct+"%";
+          startBtn.textContent=pct<100?`Uploading… ${pct}%`:"Processing…";
+        }
+      };
+      xhr.onload=()=>{
+        if(xhr.status>=200&&xhr.status<300){
+          try{resolve(JSON.parse(xhr.responseText));}
+          catch(_){reject(new Error("Invalid server response"));}
+        }else{
+          let msg=xhr.statusText;
+          try{msg=JSON.parse(xhr.responseText).detail||msg;}catch(_){}
+          reject(new Error(msg));
+        }
+      };
+      xhr.onerror=()=>reject(new Error("Network error — check your connection"));
+      xhr.open("POST",API+"/api/upload");
+      xhr.send(fd);
+    });
+    progressEl.style.display="none";
+    onUploaded(data);
+  }catch(e){
+    progressEl.style.display="none";
+    document.getElementById("upErr").textContent="Upload failed: "+e.message;
+    startBtn.disabled=false;startBtn.textContent="Start cleaning";
+  }
+}
+async function trySample(){
+  const btn=document.getElementById("sampleBtn");
+  btn.disabled=true;btn.textContent="Loading sample…";
+  try{
+    const r=await fetch(API+"/api/sample",{method:"POST"});
+    if(!r.ok)throw new Error((await r.json().catch(()=>({}))).detail||r.statusText);
+    onUploaded(await r.json());
+  }catch(e){
+    document.getElementById("upErr").textContent="Could not load sample: "+e.message;
+    btn.disabled=false;btn.textContent="Try the sample dataset (UCI Adult Income)";
+  }
+}
+
+function onUploaded(data){
+  // Multi-file upload: backend returned a proposal instead of profiling results.
+  if(data.status==="pending_confirmation"){
+    document.getElementById("landing").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("dsName").textContent="reviewing files…";
+    initStages();
+    showIngestionProposalCard(data.proposal_id, data.ingestion_proposal);
+    return;
+  }
+  S.sid=data.session_id;
+  document.getElementById("landing").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  document.getElementById("dsName").textContent=data.dataset_name||"dataset";
+  document.getElementById("startOverBtn").style.display="block";
+  initStages();
+  showIngestion(data.ingestion||{});
+  onProfiled(data);
+}
+
+/* ---------- ingestion proposal card (multi-file) ---------- */
+const ROLE_LABELS={
+  primary_data:"Primary data",
+  target:"Target / labels",
+  hold_out:"Hold-out (val/test)",
+  template:"Ignore (template)",
+  companion:"Companion file",
+};
+const ROLE_COLORS={
+  primary_data:"var(--accent)",
+  target:"var(--green,#3a8a3a)",
+  hold_out:"var(--amber)",
+  template:"var(--text2)",
+  companion:"var(--text2)",
+};
+
+function showIngestionProposalCard(proposalId, proposal){
+  const files=proposal.files||[];
+  const notes=proposal.notes||"";
+  const usedLlm=proposal.used_llm;
+
+  const node=document.createElement("div");
+  node.className="msg agent";node.style.maxWidth="96%";
+
+  const rowsHtml=files.map((f,i)=>{
+    const opts=Object.entries(ROLE_LABELS).map(([v,l])=>
+      `<option value="${v}"${f.role===v?" selected":""}>${l}</option>`
+    ).join("");
+    const meta=f.n_rows!=null?`${f.n_rows.toLocaleString()} rows · ${f.n_cols} cols`:"";
+    return `<tr>
+      <td style="padding:5px 8px;font-size:12px;color:var(--text);word-break:break-all">${esc(f.filename)}</td>
+      <td style="padding:5px 8px;font-size:11px;color:var(--text2)">${esc(meta)}</td>
+      <td style="padding:5px 4px">
+        <select data-idx="${i}" class="role-sel"
+          style="font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--bg2);color:var(--text)">
+          ${opts}
+        </select>
+      </td>
+    </tr>`;
+  }).join("");
+
+  node.innerHTML=`
+    <div class="card" style="border-color:var(--accent-line,var(--accent))">
+      <div class="ctop">
+        <div class="ctitle" style="color:var(--accent)">&#128196; Data Ingestion — ${files.length} files detected</div>
+        <div class="cbody">
+          ${usedLlm
+            ? `<b>AI read your documentation</b> and proposed the following roles.
+               Review and adjust before proceeding.`
+            : `Multiple files detected. Assign a role to each file.`}
+          ${notes?`<div style="margin-top:6px;font-size:12px;color:var(--text2)">${esc(notes)}</div>`:""}
+        </div>
+        <div style="margin-top:10px;overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border)">
+                <th style="padding:4px 8px;text-align:left;font-weight:600;color:var(--text2);font-size:11px">File</th>
+                <th style="padding:4px 8px;text-align:left;font-weight:600;color:var(--text2);font-size:11px">Size</th>
+                <th style="padding:4px 8px;text-align:left;font-weight:600;color:var(--text2);font-size:11px">Role</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+        <div id="ing-joinkey-section" style="margin-top:12px;padding:10px 12px;background:var(--bg2);border-radius:6px;border:1px solid var(--border);display:none">
+          <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Join key</div>
+          <div id="ing-jk-desc" style="font-size:12px;color:var(--text);margin-bottom:8px"></div>
+          <div id="ing-jk-selected" style="display:flex;flex-wrap:wrap;gap:4px;min-height:32px;padding:5px 8px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;margin-bottom:8px;align-items:center"></div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:5px">Available columns — click to add:</div>
+          <div id="ing-jk-pool" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--text2);line-height:1.6">
+          <b>primary_data</b> — the table to clean &nbsp;·&nbsp;
+          <b>target</b> — labels to join onto it &nbsp;·&nbsp;
+          <b>hold_out</b> — val/test set, cleaned separately &nbsp;·&nbsp;
+          <b>template / companion</b> — excluded from cleaning
+        </div>
+      </div>
+      <div class="cact">
+        <div class="tier1">
+          <button class="cbtn accept" id="ing-confirm-btn">
+            <span class="ck-main">&#10003; Confirm and load data</span>
+            <span class="ck-sub" id="ing-confirm-sub">Checking roles…</span>
+          </button>
+        </div>
+      </div>
+    </div>`;
+  addRaw(node);
+  const cardEl=node.querySelector(".card");
+
+  // Initialise selected keys from AI proposal (array, comma-string, or null).
+  const _initKeys=Array.isArray(proposal.join_key)
+    ?proposal.join_key
+    :(proposal.join_key?proposal.join_key.split(",").map(k=>k.trim()).filter(Boolean):[]);
+  const selectedKeys=new Set(_initKeys);
+  let _jkAllCols=[];
+
+  function renderJkChips(allCols){
+    if(allCols!==undefined)_jkAllCols=allCols;
+    const selDiv=node.querySelector("#ing-jk-selected");
+    const poolDiv=node.querySelector("#ing-jk-pool");
+    if(!selDiv||!poolDiv)return;
+    if(selectedKeys.size===0){
+      selDiv.innerHTML=`<span style="color:var(--text3);font-size:11px;font-style:italic;padding:2px 4px">Click columns below to add join key(s)</span>`;
+    }else{
+      selDiv.innerHTML=[...selectedKeys].map(k=>
+        `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px 2px 10px;background:var(--blue-bg);border:1px solid var(--blue-line);border-radius:12px;font-size:11.5px;font-family:monospace;color:var(--blue)">
+          ${esc(k)}<button data-col="${esc(k)}" style="background:none;border:none;cursor:pointer;font-size:15px;color:var(--blue);padding:0 0 0 2px;line-height:1;opacity:.6;vertical-align:middle" title="Remove">×</button>
+        </span>`
+      ).join("");
+      selDiv.querySelectorAll("button[data-col]").forEach(btn=>{
+        btn.onclick=e=>{e.stopPropagation();selectedKeys.delete(btn.dataset.col);renderJkChips();};
+      });
+    }
+    const poolCols=_jkAllCols.filter(c=>!selectedKeys.has(c));
+    poolDiv.innerHTML=poolCols.map(c=>
+      `<span data-col="${esc(c)}" style="cursor:pointer;padding:2px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;font-size:11px;font-family:monospace;color:var(--text2)">${esc(c)}</span>`
+    ).join("");
+    poolDiv.querySelectorAll("span[data-col]").forEach(chip=>{
+      chip.onmouseover=()=>{chip.style.background="var(--blue-bg)";chip.style.borderColor="var(--blue-line)";chip.style.color="var(--blue)";};
+      chip.onmouseout=()=>{chip.style.background="var(--bg3)";chip.style.borderColor="var(--border)";chip.style.color="var(--text2)";};
+      chip.onclick=()=>{selectedKeys.add(chip.dataset.col);renderJkChips();};
+    });
+  }
+
+  // Live preview of what "Confirm" will do, and drive join-key section.
+  function updateSub(){
+    const roles=getCurrentRoles();
+    const primary=roles.filter(f=>f.role==="primary_data").map(f=>f.filename);
+    const targets=roles.filter(f=>f.role==="target").map(f=>f.filename);
+    const holdouts=roles.filter(f=>f.role==="hold_out").map(f=>f.filename);
+    let desc=primary.length?`Load ${primary.map(f=>esc(Path_basename(f))).join(" + ")}`:"(no primary selected)";
+    if(targets.length) desc+=` · join ${targets.map(f=>esc(Path_basename(f))).join(", ")}`;
+    if(holdouts.length) desc+=` · hold-out: ${holdouts.map(f=>esc(Path_basename(f))).join(", ")}`;
+    node.querySelector("#ing-confirm-sub").textContent=desc;
+
+    // Show / hide join-key section and refresh chip pool.
+    const jkSection=node.querySelector("#ing-joinkey-section");
+    const jkDesc=node.querySelector("#ing-jk-desc");
+    const primaryRoles=roles.filter(f=>f.role==="primary_data");
+    const targetRoles=roles.filter(f=>f.role==="target");
+    const hasJoin=targetRoles.length>0||primaryRoles.length>=2;
+    jkSection.style.display=hasJoin?"":"none";
+    if(hasJoin){
+      if(primaryRoles.length>=2&&targetRoles.length===0){
+        jkDesc.innerHTML=`<b>${primaryRoles.length} primary files</b> will be merged — select the shared join column(s).`;
+      }else if(targetRoles.length>0&&primaryRoles.length<=1){
+        jkDesc.innerHTML=`Which column(s) link the <b>target</b> file to <b>primary data</b>?`;
+      }else{
+        jkDesc.innerHTML=`Select the shared column(s) to join all files together.`;
+      }
+      const seen=new Set();const allCols=[];
+      [...primaryRoles,...targetRoles].forEach(f=>{
+        (f.columns||[]).forEach(c=>{if(!seen.has(c)){seen.add(c);allCols.push(c);}});
+      });
+      renderJkChips(allCols);
+    }
+  }
+  function getCurrentRoles(){
+    return files.map((f,i)=>{
+      const sel=node.querySelector(`.role-sel[data-idx="${i}"]`);
+      return {...f, role:sel?sel.value:f.role};
+    });
+  }
+  node.querySelectorAll(".role-sel").forEach(sel=>sel.onchange=updateSub);
+  updateSub();
+
+  node.querySelector("#ing-confirm-btn").onclick=async()=>{
+    const confirmedFiles=getCurrentRoles();
+    if(!confirmedFiles.some(f=>f.role==="primary_data")){
+      addMsg('<b>Please assign at least one file the role "Primary data" before proceeding.</b>');
+      return;
+    }
+    cardEl.classList.add("resolved");
+    const tag=document.createElement("div");tag.className="done-tag c";
+    const primary=confirmedFiles.filter(f=>f.role==="primary_data").map(f=>Path_basename(f.filename));
+    const joined=confirmedFiles.filter(f=>f.role==="target").map(f=>Path_basename(f.filename));
+    tag.textContent="Ingestion confirmed · "+primary.join("+")+(joined.length?" + "+joined.join("+"):"");
+    cardEl.appendChild(tag);
+
+    try{
+      const joinKeyVal=selectedKeys.size>0?[...selectedKeys]:null;
+      const r=await fetch(API+"/api/ingestion/confirm",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          proposal_id:proposalId,
+          files:confirmedFiles,
+          join_key:joinKeyVal,
+          key_map:proposal.key_map||{},
+          na_values:proposal.na_values||[],
+          target_column:proposal.target_column||null,
+        })});
+      if(!r.ok){
+        let errBody={};
+        try{errBody=await r.json();}catch(_){}
+        let detail=errBody.detail||r.statusText||"unknown error";
+        if(Array.isArray(detail)){
+          // Pydantic 422: [{loc:[...], msg:"...", type:"..."}]
+          detail=detail.map(e=>(e.loc||[]).join(".")+": "+e.msg).join("; ");
+        }else if(typeof detail==="object"){
+          detail=JSON.stringify(detail);
+        }
+        addMsg(`<b>Ingestion failed:</b> ${esc(String(detail))}`);return;
+      }
+      const data=await r.json();
+      S.sid=data.session_id;
+      document.getElementById("dsName").textContent=data.dataset_name||"dataset";
+      document.getElementById("startOverBtn").style.display="block";
+      showIngestion(data.ingestion||{});
+      onProfiled(data);
+    }catch(e){addMsg(`<b>Ingestion failed:</b> ${esc(String(e))}`);}
+  };
+}
+
+function Path_basename(p){return p.replace(/.*[/\\]/,"");}
+
+/* ---------- ingestion summary ---------- */
+function showIngestion(ing){
+  if(ing&&ing.summary){
+    let html=`<b>${ing.used_llm?"I read your documentation and loaded the data.":"Data loaded."}</b><br>${esc(ing.summary)}`;
+    addMsg(html);
+  }
+  // sidebar file list
+  const files=[].concat(ing.files_loaded||[],
+    (ing.doc_files||[]).map(d=>d+" (doc)"),
+    (ing.companions||[]).map(c=>c.name+" (companion)"));
+  if(files.length){
+    document.getElementById("filesLabel").style.display="";
+    document.getElementById("sideFiles").innerHTML=
+      files.map(f=>`<span class="f">${esc(f)}</span>`).join("");
+  }
+  if(ing.companions&&ing.companions.length){
+    addMsg(`Kept aside <b>${ing.companions.length} companion file(s)</b> `+
+      `(${ing.companions.map(c=>esc(c.name)).join(", ")}). These are not `+
+      `tabular data, so the cleaning pipeline leaves them untouched.`);
+    // Record companion presence + type for the format selector
+    S._hasCompanions=true;
+    const mimes=(ing.companions||[]).map(c=>(c.mime_type||c.name||"").toLowerCase());
+    S._companionType=mimes.some(m=>m.includes("audio")||m.endsWith(".wav")||m.endsWith(".mp3"))?"audio"
+      :mimes.some(m=>m.includes("pdf")||m.endsWith(".pdf"))?"text"
+      :mimes.some(m=>m.includes("video")||m.endsWith(".mp4"))?"video"
+      :"image";
+  }
+  if(ing.skipped&&ing.skipped.length){
+    addMsg(`Note: ${ing.skipped.length} uploaded file(s) could not be read `+
+      `and were skipped.`);
+  }
+}
+
+/* ---------- start over ---------- */
+async function startOver(){
+  // No session yet (still on landing) — nothing to rewind.
+  if(!S.sid){location.reload();return;}
+  if(!confirm("Start over from the beginning?\n\nThis rewinds the cleaning pipeline to step 1 and discards every decision made so far. Your uploaded data is kept — no need to re-upload.\n\nArtifacts already downloaded stay saved on disk."))return;
+
+  const btn=document.getElementById("startOverBtn");
+  const prev=btn?btn.textContent:"";
+  if(btn){btn.disabled=true;btn.textContent="Resetting…";}
+  try{
+    const r=await fetch(API+`/api/session/${S.sid}/reset`,{method:"POST"});
+    if(!r.ok)throw new Error((await r.json().catch(()=>({}))).detail||r.statusText);
+    const data=await r.json();
+    // Wipe the conversation transcript and rebuild the pipeline UI in place.
+    document.getElementById("chatBody").innerHTML="";
+    S.stageIdx=0;
+    initStages();
+    showIngestion(data.ingestion||{});
+    onProfiled(data);
+  }catch(e){
+    alert("Could not start over: "+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=prev;}
+  }
+}
+
+/* ---------- sidebar / stages ---------- */
+function initStages(){
+  const el=document.getElementById("stageList");
+  el.innerHTML=STAGES.map(s=>
+    `<div class="stage" id="st-${s}"><div class="dot"></div>
+     <span class="lbl">${STAGE_LABEL[s]}</span></div>`).join("");
+  paintStages();
+}
+function paintStages(){
+  STAGES.forEach((s,i)=>{
+    const row=document.getElementById("st-"+s);
+    const dot=row.querySelector(".dot");
+    row.className="stage";dot.className="dot";
+    if(i<S.stageIdx){row.classList.add("done");dot.classList.add("done");}
+    else if(i===S.stageIdx){row.classList.add("active");dot.classList.add("active");}
+  });
+  const cur=STAGES[S.stageIdx];
+  document.getElementById("statusPill").textContent=
+    cur?STAGE_LABEL[cur]:"Complete";
+}
+function setStats(o){
+  document.getElementById("sideStats").innerHTML=
+    `${o.n_rows.toLocaleString()} rows · ${o.n_cols} variables<br>`+
+    `${o.n_decisions||0} decisions logged`;
+}
+
+/* ---------- chat helpers ---------- */
+function _scrollChat(){
+  const b=document.getElementById("chatBody");
+  b.scrollTo({top:b.scrollHeight,behavior:"smooth"});
+}
+function addMsg(html,who){
+  const b=document.getElementById("chatBody");
+  const d=document.createElement("div");
+  d.className="msg "+(who||"agent");
+  d.innerHTML=`<div class="who">${who==="user"?"You":"Distill Agent"}</div>
+    <div class="bubble">${html}</div>`;
+  b.appendChild(d);_scrollChat();
+  return d;
+}
+function addRaw(node){
+  const b=document.getElementById("chatBody");
+  b.appendChild(node);_scrollChat();
+}
+
+/* ---------- stage 1: profiled ---------- */
+function onProfiled(data){
+  S.columns=data.profile.map(p=>p.name);
+  S.profile=data.profile;
+  setStats({n_rows:data.n_rows,n_cols:data.n_cols,n_decisions:1});
+  buildTabs(data.profile);
+  const flags=data.profile.reduce((a,p)=>a+p.flags.length,0);
+  const miss=data.profile.filter(p=>p.n_missing>0).length;
+  addMsg(`I profiled <b>${data.profile.length} variables</b> across
+    <b>${data.n_rows.toLocaleString()} rows</b>.
+    ${miss} variable(s) have missing values; ${flags} type/quality flag(s)
+    were raised.`);
+  S.stageIdx=STAGES.indexOf("companion");paintStages();
+  runCompanionStage(data.companion_card);
+}
+
+/* ---------- Stage 1.5: companion matching ---------- */
+async function runCompanionStage(companionCard){
+  S.stageIdx=STAGES.indexOf("companion");paintStages();
+
+  // No companions uploaded — skip silently.
+  if(!companionCard){
+    await fetch(API+`/api/session/${S.sid}/companion`,{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({mode:"reference_only"})});
+    addMsg("No companion files — companion matching skipped.");
+    S.stageIdx=STAGES.indexOf("format");paintStages();
+    runFormat();
+    return;
+  }
+
+  // Companions present — show script-delivery card.
+  const cc=companionCard;
+  const nTotal=cc.n_total, nImg=cc.n_images, nOther=cc.n_other;
+  const fileList=cc.files.slice(0,6).map(f=>esc(f.name)).join(", ")
+    +(cc.files.length>6?` …+${cc.files.length-6} more`:"");
+
+  const colHints=S.columns.join(", ");
+  const node=document.createElement("div");
+  node.className="msg agent";node.style.maxWidth="94%";
+
+  // Companions always use reference_only — user cleans in their own session.
+  S.hasCompanions=true;
+
+  node.innerHTML=`
+    <div class="card" style="border-color:var(--amber-line)">
+      <div class="ctop">
+        <div class="ctitle" style="color:var(--amber)">&#128194; Companion Files Detected — ${nTotal} file(s)</div>
+        <div class="cbody">
+          <b>${nTotal} companion file(s)</b> uploaded
+          (${nImg>0?nImg+" image(s)":""}${nImg>0&&nOther>0?", ":""}${nOther>0?nOther+" other(s)":""}).
+          <br><span style="font-size:11px;color:var(--text2)">${fileList}</span>
+        </div>
+        <div class="cwhy" style="margin-top:10px">
+          Because your dataset has companion files, we recommend loading and
+          using them <b>in your own coding session</b> rather than downloading
+          a pre-merged file. We will deliver a <b>ready-to-run Python script</b>
+          (<code>clean_script.py</code>) that cleans the tabular data and gives
+          you a <code>companion_path</code> column so you can load each file
+          however your model or analysis needs it.
+        </div>
+
+        <div class="cwhy" style="margin-top:16px">
+          <b>Subject matching check (optional)</b>
+        </div>
+
+        <!-- Subject matching: toggle + template input -->
+        <div style="display:flex;align-items:center;gap:8px;margin:10px 0">
+          <input type="checkbox" id="comp-match-check" checked style="width:16px;height:16px;cursor:pointer">
+          <label for="comp-match-check" style="cursor:pointer;font-size:13px">
+            Check which subjects have a matching companion file
+          </label>
+        </div>
+
+        <div id="comp-match-section" style="margin-left:24px;margin-top:10px">
+          <!-- hidden input keeps the derived template value for the backend -->
+          <input id="comp-template-input" type="hidden">
+          <div id="comp-proposal-box" style="padding:10px;border-radius:6px;
+            background:var(--bg2);border:1px solid var(--border);font-size:12px;line-height:1.5">
+            <div style="color:var(--text2);font-size:12px">
+              <span style="display:inline-block;width:13px;height:13px;border:2px solid var(--text3);
+                border-top-color:transparent;border-radius:50%;animation:btn-spin .6s linear infinite;
+                vertical-align:middle;margin-right:6px"></span>
+              Analyzing companion filenames…
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cact">
+        <div class="tier1">
+          <button class="cbtn accept" id="comp-proceed">Proceed →</button>
+        </div>
+      </div>
+    </div>`;
+  addRaw(node);
+  const cardEl=node.querySelector(".card");
+  const matchCheck=node.querySelector("#comp-match-check");
+  const matchSection=node.querySelector("#comp-match-section");
+  const templateInput=node.querySelector("#comp-template-input");
+  const proposalBox=node.querySelector("#comp-proposal-box");
+  const proceedBtn=node.querySelector("#comp-proceed");
+
+  // Toggle matching section visibility
+  matchCheck.onchange=()=>{ matchSection.style.display=matchCheck.checked?"block":"none"; };
+
+  // Auto-trigger AI proposal immediately on render
+  async function runProposal(){
+    try{
+      const r=await fetch(API+`/api/session/${S.sid}/companion/propose`,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({})});
+      const p=await r.json();
+      if(p.available && p.template){
+        const conf=p.confidence||"?";
+        const confColor=conf==="high"?"var(--green)":conf==="medium"?"var(--amber)":"var(--text2)";
+        // Parse the template into parts: column refs and literal separators
+        // e.g. "{jurisdiction}_{period_id}" → ["jurisdiction","_","period_id"]
+        const parts=[]; let remaining=p.template;
+        const re=/\{(\w+)\}/g; let m; let last=0;
+        while((m=re.exec(p.template))!==null){
+          if(m.index>last)parts.push({type:"sep",val:p.template.slice(last,m.index)});
+          parts.push({type:"col",val:m[1]});
+          last=m.index+m[0].length;
+        }
+        if(last<p.template.length)parts.push({type:"sep",val:p.template.slice(last)});
+        // If template is a plain column name (no braces), treat it as one col
+        if(!parts.length)parts.push({type:"col",val:p.template});
+
+        function rebuildTemplate(){
+          return parts.map(pt=>pt.type==="col"?`{${pt.val}}`:pt.val).join("");
+        }
+        const chipHtml=colHints.split(", ").map(c=>{
+          const active=parts.some(pt=>pt.type==="col"&&pt.val===c.trim());
+          return `<span class="comp-chip${active?" active":""}" data-col="${esc(c.trim())}">${esc(c.trim())}</span>`;
+        }).join("");
+
+        proposalBox.innerHTML=`
+          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+            <b style="font-size:12px">AI suggestion</b>
+            <span style="font-size:10px;padding:1px 6px;border-radius:10px;
+              background:${confColor}20;color:${confColor};border:1px solid ${confColor}40">${esc(conf)} confidence</span>
+          </div>
+          <div style="color:var(--text2);font-size:11.5px;margin-bottom:10px">${esc(p.rationale||"")}</div>
+          <div class="comp-key-builder">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Key preview</div>
+            <div class="comp-key-preview" id="key-preview">${esc(rebuildTemplate())}</div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:5px">Click columns to toggle</div>
+            <div class="comp-col-chips">${chipHtml}</div>
+            <div class="comp-sep-hint">Separator between columns:
+              <input id="sep-input" value="${esc(parts.find(pt=>pt.type==="sep")?.val||"_")}"
+                style="width:40px;font-size:11.5px;padding:2px 6px;border:1px solid var(--border);
+                border-radius:4px;background:var(--bg2);color:var(--text);font-family:monospace">
+            </div>
+          </div>`;
+        proposalBox.style.display="block";
+
+        // Wire chip toggles and separator input to update template
+        const preview=proposalBox.querySelector("#key-preview");
+        const sepInput=proposalBox.querySelector("#sep-input");
+        function syncTemplate(){
+          // Rebuild parts from active chips + current separator
+          const sep=sepInput.value;
+          const activeCols=[...proposalBox.querySelectorAll(".comp-chip.active")].map(c=>c.dataset.col);
+          parts.length=0;
+          activeCols.forEach((c,i)=>{
+            parts.push({type:"col",val:c});
+            if(i<activeCols.length-1)parts.push({type:"sep",val:sep});
+          });
+          const tmpl=activeCols.length===1?`{${activeCols[0]}}`:rebuildTemplate();
+          preview.textContent=tmpl;
+          templateInput.value=tmpl;
+        }
+        proposalBox.querySelectorAll(".comp-chip").forEach(chip=>{
+          chip.onclick=()=>{chip.classList.toggle("active");syncTemplate();};
+        });
+        sepInput.oninput=syncTemplate;
+        // Initialise the template input with the AI suggestion
+        templateInput.value=rebuildTemplate();
+      } else {
+        proposalBox.innerHTML=`<span style="color:var(--text2)">${esc(p.rationale||p.error||"No suggestion available — enter a template manually.")}</span>`;
+        proposalBox.style.display="block";
+      }
+    }catch(e){
+      proposalBox.innerHTML=`<span style="color:var(--text2)">
+        Could not auto-suggest a template. Enter it manually:<br>
+        <input id="comp-template-manual" type="text"
+          placeholder="{jurisdiction}_{period_id}"
+          style="margin-top:6px;width:100%;font-size:12px;padding:5px 8px;
+            border:1px solid var(--border);border-radius:4px;
+            background:var(--bg);color:var(--text)">
+      </span>`;
+      const manual=proposalBox.querySelector("#comp-template-manual");
+      if(manual) manual.oninput=()=>{templateInput.value=manual.value.trim();};
+    }
+  }
+  runProposal();   // fire immediately — no button click needed
+
+  // Proceed: send reference_only + optional match_template
+  proceedBtn.onclick=async()=>{
+    proceedBtn.disabled=true;
+    proceedBtn.classList.add("btn-loading");
+    proceedBtn.textContent="Applying…";
+    const matchTemplate=matchCheck.checked?templateInput.value.trim():null;
+    cardEl.classList.add("resolved");
+
+    const body={mode:"reference_only"};
+    if(matchTemplate) body.match_template=matchTemplate;
+
+    let resp;
+    try{
+      const r=await fetch(API+`/api/session/${S.sid}/companion`,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(body)});
+      resp=await r.json();
+    }catch(e){
+      addMsg(`<b>Companion stage failed:</b> ${esc(String(e))}`);
+      S.stageIdx=STAGES.indexOf("format");paintStages();
+      runFormat();return;
+    }
+
+    const tag=document.createElement("div");
+    tag.className="done-tag c";
+    tag.textContent=matchTemplate?`Script delivery · Matching: ${matchTemplate}`:"Script delivery (reference only)";
+    const reviseBtn=document.createElement("button");
+    reviseBtn.textContent="Revise";
+    reviseBtn.style.cssText="margin-left:10px;font-size:11px;padding:2px 8px;cursor:pointer;"+
+      "background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--text2)";
+    reviseBtn.onclick=()=>{ tag.remove(); cardEl.classList.remove("resolved"); };
+    tag.appendChild(reviseBtn);
+    cardEl.appendChild(tag);
+
+    if(resp.card && resp.card.status==="pending"){
+      showCompanionMatchingCard(resp.card);
+    } else {
+      const cov=resp.card
+        ? `All ${resp.card.metadata.n_total} subjects matched.`
+        : "No row-level matching performed.";
+      addMsg(`Companion stage complete. ${cov}`);
+      S.stageIdx=STAGES.indexOf("format");paintStages();
+      runFormat();
+    }
+  };
+}
+
+/* ---------- companion matching decision card ---------- */
+function showCompanionMatchingCard(card){
+  const meta=card.metadata||{};
+  const nUnmatched=meta.n_unmatched||0, nTotal=meta.n_total||0;
+  const complete=(meta.coverage==="complete")||nUnmatched===0;
+  const unmatched=(meta.unmatched_subjects||[]).slice(0,10);
+  const preview=unmatched.map(s=>esc(String(s))).join(", ")
+    +(nUnmatched>10?` … +${nUnmatched-10} more`:"");
+  const orphans=meta.n_orphan_companions||0;
+
+  const node=document.createElement("div");
+  node.className="msg agent";node.style.maxWidth="94%";
+
+  if(complete){
+    // Complete coverage — ask only whether to store the path column.
+    node.innerHTML=`
+    <div class="card" style="border-color:var(--green,#3a8a3a)">
+      <div class="ctop">
+        <div class="ctitle" style="color:var(--green,#3a8a3a)">&#10003; Companion Matching — all ${nTotal} subjects matched</div>
+        <div class="cbody">
+          Every subject has a matching companion file. Do you want the resolved
+          companion <b>file-path column</b> (e.g. <code>image_path</code>) stored
+          in the cleaned data?
+        </div>
+        <div class="cwhy">
+          <b>Keep it out</b> (recommended): the cleaned table stays lean. The
+          generated <code>clean_script.py</code> reconstructs each companion path
+          on demand when you pass it a companion directory.<br><br>
+          <b>Include the path column</b>: store the resolved local file path for
+          each row directly in <code>clean.csv</code> / Parquet.
+        </div>
+      </div>
+      <div class="cact">
+        <div class="tier1">
+          <button class="cbtn accept" id="comp-exclude">
+            <span class="ck-main">&#10003; Keep the path column out</span>
+            <span class="ck-sub">Recommended · paths reconstructed on demand by the script</span>
+          </button>
+          <button class="cbtn other" id="comp-include">Include the companion path column</button>
+        </div>
+      </div>
+    </div>`;
+  } else {
+    node.innerHTML=`
+    <div class="card" style="border-color:var(--orange-line,#e07b39)">
+      <div class="ctop">
+        <div class="ctitle" style="color:var(--orange,#c05621)">&#9888; Companion Matching — ${nUnmatched} unmatched subject(s)</div>
+        <div class="cbody">
+          <b>${nUnmatched} of ${nTotal} subjects</b> have no matching companion file.
+          ${orphans?`<br>${orphans} companion file(s) have no matching subject.`:""}
+          ${preview?`<br><span style="font-size:11px;color:var(--text2)">Unmatched: ${preview}</span>`:""}
+        </div>
+        <div class="cwhy">
+          <b>Keep all subjects</b> (recommended): retain every row; companion
+          paths stay out of the table and are reconstructed on demand.<br><br>
+          <b>Add a presence indicator</b>: keep every row and add a
+          <code>has_&lt;type&gt;</code> column so you can tell which rows lack a
+          companion.<br><br>
+          <b>Remove unmatched</b>: drop rows with no companion file. Use only if
+          companion data is required for every record.<br><br>
+          <b>Note in report</b>: keep all rows and add a caveat to the audit report.
+        </div>
+      </div>
+      <div class="cact">
+        <div class="tier1">
+          <button class="cbtn accept" id="comp-keep">
+            <span class="ck-main">&#10003; Keep all subjects</span>
+            <span class="ck-sub">Recommended · all rows kept, no extra columns</span>
+          </button>
+          <button class="cbtn other" id="comp-indicator">Add presence indicator (has_&lt;type&gt;)</button>
+          <button class="cbtn warn" id="comp-drop">Remove unmatched subjects</button>
+          <button class="cbtn other" id="comp-flag">Note in report only</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  addRaw(node);
+  const cardEl=node.querySelector(".card");
+
+  async function resolve(action, label){
+    cardEl.classList.add("resolved");
+    const tag=document.createElement("div");
+    tag.className="done-tag c";tag.textContent=label;
+    // Revise button inside the done-tag
+    const reviseBtn=document.createElement("button");
+    reviseBtn.textContent="Revise";
+    reviseBtn.style.cssText="margin-left:10px;font-size:11px;padding:2px 8px;cursor:pointer;"+
+      "background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--text2)";
+    reviseBtn.onclick=()=>{
+      tag.remove();
+      cardEl.classList.remove("resolved");
+    };
+    tag.appendChild(reviseBtn);
+    cardEl.appendChild(tag);
+    try{
+      const r=await fetch(API+`/api/session/${S.sid}/companion_matching/resolve`,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({action})});
+      const data=await r.json();
+      if(data.n_dropped>0)
+        addMsg(`Removed <b>${data.n_dropped} row(s)</b> with no companion. ${data.n_rows_remaining.toLocaleString()} rows remain.`);
+      else if(data.include_companion_path)
+        addMsg("Companion path column will be kept in the cleaned data. Moving to format resolution.");
+      else if(data.include_companion_indicator)
+        addMsg("A presence indicator (has_&lt;type&gt;) will be added. Moving to format resolution.");
+      else
+        addMsg("Companion matching decision applied. Moving to format resolution.");
+    }catch(e){addMsg(`Companion resolve failed: ${esc(String(e))}`);}
+    S.stageIdx=STAGES.indexOf("format");paintStages();
+    runFormat();
+  }
+
+  const byId=id=>node.querySelector(id);
+  if(complete){
+    byId("#comp-exclude").onclick=()=>resolve("exclude_path","Path column kept out");
+    byId("#comp-include").onclick=()=>resolve("include_path","Path column included");
+  } else {
+    byId("#comp-keep").onclick=()=>resolve("keep_rows","Kept all subjects");
+    byId("#comp-indicator").onclick=()=>resolve("add_indicator","Presence indicator added");
+    byId("#comp-drop").onclick=()=>resolve("drop_rows","Unmatched subjects removed");
+    byId("#comp-flag").onclick=()=>resolve("flag_caveat","Noted in report");
+  }
+}
+
+/* ---------- stage 2: format ---------- */
+async function runFormat(){
+  const r=await fetch(API+`/api/session/${S.sid}/format`,{method:"POST"});
+  const data=await r.json();
+  S.columns=data.columns;
+  rebuildTabs(data.columns);
+  const auto=data.cards.length;
+  let lines=data.cards.slice(0,7).map(c=>`<div class="info-line">${esc(c.issue)}</div>`).join("");
+  if(auto>7)lines+=`<div class="info-line">…and ${auto-7} more</div>`;
+  addMsg(`Format resolution applied <b>${auto} mechanical fix(es)</b>
+    automatically &mdash; these need no review:`+lines);
+  S.stageIdx=STAGES.indexOf("format")+1;paintStages();
+  refreshStatus();
+  addAutoPassBtn("format",()=>runStage("duplicate"));
+}
+
+/* ---------- judgment stages ---------- */
+async function runStage(stage){
+  S.resolutions[stage]={};
+  S._cardQueueDone[stage]=false;
+  let data;
+  try{
+    const r=await fetch(API+`/api/session/${S.sid}/detect/${stage}`,{method:"POST"});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||r.statusText);}
+    data=await r.json();
+  }catch(e){
+    addMsg(`<b>${STAGE_LABEL[stage]} failed:</b> ${esc(String(e.message||e))}. You can skip this stage and continue.`);
+    addAutoPassBtn(stage,()=>applyStage(stage,true));
+    return;
+  }
+  const pend=data.cards.filter(c=>c.status==="pending");
+  const info=data.cards.filter(c=>c.status!=="pending");
+  if(pend.length===0){
+    let txt=`<b>${STAGE_LABEL[stage]}:</b> nothing needs your decision.`;
+    if(info.length)txt+=info.map(c=>`<div class="info-line">${esc(c.issue)}</div>`).join("");
+    addMsg(txt);
+    addAutoPassBtn(stage,()=>applyStage(stage,true));
+    return;
+  }
+  addMsg(`<b>${STAGE_LABEL[stage]}</b> &mdash; ${pend.length} decision(s) to review,
+    one at a time. Answer each one to reveal the next.`);
+  info.forEach(c=>addMsg(`<div class="info-line">${esc(c.issue)}</div>`));
+  S._cardQueues[stage]=[...pend];
+  showNextCard(stage,()=>addStageCTA(stage,pend.length));
+}
+
+/* ---------- model-imputation sub-chooser ---------- */
+const _MODEL_INFO=`<b>Regression / MICE (BayesianRidge, 10 rounds)</b><br>
+Fits a separate BayesianRidge regressor per numeric column in a round-robin
+loop (Multiple Imputation by Chained Equations), so each gap is predicted from
+the other columns in the row. Works best when covariates have informative
+relationships with the missing variable. Categorical columns fall back to mode
+imputation, since MICE is numeric-only.`;
+
+const _MODEL_CAPACITY=`Our built-in model-based imputer is <b>MICE regression</b>.
+For other imputers (KNN, random-forest, deep learning, domain-specific rules)
+you can implement them directly in the <b>reproducible cleaning script</b> we
+generate — it is plain pandas / scikit-learn code that is easy to extend
+without the agent.`;
+
+function _showModelChooser(cardEl, stage, card_id, defaultModel, resolve){
+  /* Append the model chooser panel below the card action area. */
+  let panel=cardEl.querySelector(".model-chooser");
+  if(panel){panel.remove();}
+  panel=document.createElement("div");
+  panel.className="model-chooser";
+  panel.style.cssText="margin-top:8px;padding:10px 14px;background:var(--bg2);border-radius:6px;font-size:13px;";
+  panel.innerHTML=`
+    <div style="margin-bottom:8px;font-weight:600;color:var(--fg)">Model-based imputation:</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="cbtn mc-reg" style="min-width:140px">
+        <span class="ck-main">Regression (MICE)</span>
+        <span class="ck-sub">BayesianRidge · 10 rounds</span>
+      </button>
+      <button class="cbtn inspect mc-info" style="min-width:110px">ⓘ How it works</button>
+      <button class="cbtn inspect mc-other" style="min-width:120px">Need another model?</button>
+    </div>
+    <div class="mc-detail" hidden style="margin-top:10px;line-height:1.55;color:var(--fg2)"></div>`;
+  cardEl.querySelector(".cact").appendChild(panel);
+  /* Scroll the panel into view so the user doesn't have to hunt for it. */
+  setTimeout(()=>panel.scrollIntoView({behavior:"smooth",block:"nearest"}),50);
+
+  /* MICE regression is the only built-in model imputer; highlight it. */
+  panel.querySelector(".mc-reg").style.outline="2px solid var(--blue,#1565c0)";
+
+  const detail=panel.querySelector(".mc-detail");
+
+  panel.querySelector(".mc-info").onclick=()=>{
+    const open=!detail.hidden;
+    detail.hidden=open;
+    if(!open){detail.innerHTML=_MODEL_INFO;}
+  };
+  panel.querySelector(".mc-other").onclick=()=>{
+    const open=!detail.hidden && detail.dataset.src==="other";
+    detail.hidden=open;
+    if(!open){detail.innerHTML=_MODEL_CAPACITY; detail.dataset.src="other";}
+    else{detail.dataset.src="";}
+  };
+  panel.querySelector(".mc-reg").onclick=()=>resolve("regression_impute","Regression imputation (MICE)");
+}
+
+function renderCard(card,stage,onAnswered){
+  const opts=card.options||[];
+  const rec=opts.find(o=>o.recommended)||opts[0]||
+    {action:card.recommended_action,label:card.recommended_label||"Accept",description:""};
+  const others=opts.filter(o=>o!==rec);
+
+  /* Detect whether this card involves model-based imputation. */
+  const _MODEL_ACTIONS=new Set(["regression_impute"]);
+  const recIsModel=_MODEL_ACTIONS.has(rec.action);
+  const altHasModel=others.some(o=>_MODEL_ACTIONS.has(o.action));
+
+  // Build flagged-value detail block for outlier cards.
+  let valDetail="";
+  if(card.stage==="outlier"){
+    const m=card.metadata||{};
+    const n=m.n_flagged_total||0;
+    if(n>0){
+      const isBad=(m.severity==="implausible");
+      const vals=(m.flagged_values||[]).slice(0,8)
+        .map(v=>v===null?"NaN":String(v)).join(", ");
+      const more=n>8?` … +${n-8} more`:"";
+      const b=m.bounds||{};
+      const blo=b.iqr_low!=null?Number(b.iqr_low).toFixed(2):"—";
+      const bhi=b.iqr_high!=null?Number(b.iqr_high).toFixed(2):"—";
+      valDetail=`<div class="c-vals ${isBad?"implausible":"flagged"}">
+        <b>${isBad?"Implausible":"Flagged"} values (${n}):</b>
+        <span class="c-val-list">${esc(vals)}${esc(more)}</span>
+        <span class="c-bounds">IQR fence: [${blo}, ${bhi}]</span>
+      </div>`;
+    }
+  }
+
+  // For FE stages: promote "No Change" to a top-level button so it is
+  // always visible next to the recommended action.
+  const feStages=["binning","scaling","encoding"];
+  let noChangeOpt=null, filteredOthers=others;
+  if(feStages.includes(card.stage)){
+    noChangeOpt=others.find(o=>o.action==="leave_as_is");
+    filteredOthers=others.filter(o=>o.action!=="leave_as_is");
+  }
+
+  const node=document.createElement("div");
+  node.className="msg agent";node.style.maxWidth="94%";
+  node.innerHTML=`
+    <div class="card" id="card-${esc(card.card_id)}">
+      <div class="ctop">
+        <div class="ctitle">⚖ Decision${card.variable
+          ?` · <span class="cvar">${esc(card.variable)}</span>`:""}</div>
+        <div class="cbody"><b>What I found:</b> ${esc(card.issue)}</div>
+        <div class="cwhy"><b>My read:</b> ${esc(card.rationale)}</div>
+        ${valDetail}
+      </div>
+      <div class="cact">
+        <div class="tier1">
+          <button class="cbtn accept">
+            <span class="ck-main">✓ ${esc(rec.label)}</span>
+            <span class="ck-sub">Recommended${rec.description
+              ?" · "+esc(rec.description):""}</span>
+          </button>
+          ${noChangeOpt?`<button class="cbtn no-change">
+            <span class="ck-main">✗ No Change</span>
+            <span class="ck-sub">${esc(noChangeOpt.label)}</span>
+          </button>`:""}
+          ${filteredOthers.length?`<button class="cbtn other">Choose a different action</button>`:""}
+          ${card.variable?`<button class="cbtn inspect">View variable</button>`:""}
+        </div>
+        ${filteredOthers.length?`<div class="opts" hidden>
+          <div class="opts-h">Other ways to handle this:</div>
+          ${filteredOthers.map((o,i)=>`<button class="opt" data-i="${i}">
+            <span class="opt-l">${esc(o.label)}</span>
+            <span class="opt-d">${esc(o.description||"")}</span></button>`).join("")}
+        </div>`:""}
+      </div>
+    </div>`;
+  addRaw(node);
+  const cardEl=node.querySelector(".card");
+
+  /* Helper: finalise a card decision, called by both direct buttons and model chooser. */
+  function _resolve(action, label, kind){
+    S.resolutions[stage][card.card_id]={card_id:card.card_id,action};
+    markCard(cardEl,kind,kind==="c"?"Accepted — "+label:"Your choice — "+label,stage);
+    if(onAnswered&&!S._cardQueueDone[stage])onAnswered();else checkStageReady(stage);
+  }
+
+  node.querySelector(".accept").onclick=()=>{
+    if(recIsModel){
+      /* Don't resolve immediately — show the model sub-chooser first. */
+      _showModelChooser(cardEl, stage, card.card_id, rec.action,
+        (action,label)=>_resolve(action,label,"c"));
+    } else {
+      _resolve(rec.action, rec.label, "c");
+    }
+  };
+  const noChBtn=node.querySelector(".no-change");
+  if(noChBtn){
+    noChBtn.onclick=()=>_resolve(noChangeOpt.action, noChangeOpt.label, "o");
+  }
+  const otherBtn=node.querySelector(".other");
+  if(otherBtn){
+    const panel=node.querySelector(".opts");
+    otherBtn.onclick=()=>{panel.hidden=!panel.hidden;};
+    panel.querySelectorAll(".opt").forEach(btn=>{
+      const o=filteredOthers[+btn.dataset.i];
+      btn.onclick=()=>{
+        if(_MODEL_ACTIONS.has(o.action)){
+          panel.hidden=true;
+          /* Show model chooser instead of resolving immediately. */
+          _showModelChooser(cardEl, stage, card.card_id, o.action,
+            (action,label)=>_resolve(action,label,"o"));
+        } else {
+          _resolve(o.action, o.label, "o");
+        }
+      };
+    });
+  }
+  const insp=node.querySelector(".inspect");
+  if(insp)insp.onclick=()=>{if(card.variable)inspectVar(card.variable);};
+  // Auto-open the inspector for the current card's variable.
+  if(card.variable) inspectVar(card.variable);
+}
+function markCard(cardEl,kind,text,stage){
+  cardEl.classList.add("resolved");
+  let t=cardEl.querySelector(".done-tag");
+  if(!t){t=document.createElement("div");cardEl.appendChild(t);}
+  t.className="done-tag "+kind;
+  t.textContent=text;
+  if(stage){
+    const rb=document.createElement("button");
+    rb.className="reopen-btn";
+    rb.textContent="↩ Change";
+    rb.onclick=()=>{
+      cardEl.classList.remove("resolved");
+      t.remove();
+      const cid=cardEl.id.replace(/^card-/,"");
+      if(S.resolutions[stage])delete S.resolutions[stage][cid];
+    };
+    t.appendChild(rb);
+  }
+}
+
+function addStageCTA(stage,nPending){
+  const wrap=document.createElement("div");
+  wrap.className="stage-cta";
+  const nextIdx=STAGES.indexOf(stage)+1;
+  const nextLabel=STAGE_LABEL[STAGES[nextIdx]]||"finalize";
+  wrap.innerHTML=`<button class="btn proceed" id="cta-${stage}">
+    Apply ${STAGE_LABEL[stage]} — proceed to ${nextLabel}</button>`;
+  addRaw(wrap);
+  S._ctaTotal=nPending;
+  const ctaBtn=wrap.querySelector("button");
+  ctaBtn.onclick=()=>{
+    ctaBtn.disabled=true;
+    ctaBtn.classList.add("btn-loading");
+    ctaBtn.textContent="Applying…";
+    applyStage(stage,false).catch(()=>{
+      ctaBtn.disabled=false;
+      ctaBtn.classList.remove("btn-loading");
+      ctaBtn.textContent=`Apply ${STAGE_LABEL[stage]} — proceed to ${nextLabel}`;
+    });
+  };
+  S._cta=ctaBtn;
+}
+function addAutoPassBtn(stage,onContinue){
+  const wrap=document.createElement("div");
+  wrap.className="stage-cta";
+  const nextIdx=STAGES.indexOf(stage)+1;
+  const nextLabel=STAGE_LABEL[STAGES[nextIdx]]||"finalize";
+  wrap.innerHTML=`<button class="btn proceed">Continue to ${nextLabel}</button>`;
+  addRaw(wrap);
+  wrap.querySelector("button").onclick=()=>{wrap.remove();onContinue();};
+}
+function checkStageReady(stage){
+  // kept for backward compatibility; counter removed
+}
+
+async function applyStage(stage,auto){
+  const res=Object.values(S.resolutions[stage]||{});
+  let data;
+  try{
+    const r=await fetch(API+`/api/session/${S.sid}/resolve/${stage}`,{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({resolutions:res})});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||r.statusText);}
+    data=await r.json();
+  }catch(e){
+    addMsg(`<b>Applying ${STAGE_LABEL[stage]} failed:</b> ${esc(String(e.message||e))}. Check the server terminal for the full traceback.`);
+    return;
+  }
+  if(S._cta){S._cta.parentElement.remove();S._cta=null;}
+  // Free card queue and resolution map — no longer needed after Apply.
+  delete S._cardQueues[stage];
+  delete S._cardQueueDone[stage];
+  delete S.resolutions[stage];
+  const ov=(data.applied||[]).filter(a=>a.status==="overridden").length;
+  if(!auto)addMsg(`Applied <b>${STAGE_LABEL[stage]}</b>:
+    ${data.applied.length} decision(s)${ov?`, ${ov} of them your own choice`:""}.
+    Dataset now ${data.n_rows.toLocaleString()} rows × ${data.n_cols} columns.`);
+  refreshStatus();
+  // Refresh inspector so the user sees the post-apply state of their variable.
+  if(S.activeVar) inspectVar(S.activeVar);
+  const idx=STAGES.indexOf(stage);
+  S.stageIdx=idx+1;paintStages();
+  const next=STAGES[idx+1];
+  if(next&&JUDGMENT.includes(next)){runStage(next);}
+  else if(next==="feature_engineering"){runFeatureEngineering();}
+  else if(!next){showFormatSelector();}
+}
+
+function showNextCard(stage,onAllDone){
+  const queue=S._cardQueues[stage]||[];
+  if(queue.length===0){
+    S._cardQueueDone[stage]=true;
+    if(onAllDone)onAllDone();
+    return;
+  }
+  const card=queue.shift();
+  renderCard(card,stage,()=>showNextCard(stage,onAllDone));
+}
+
+/* ---------- output format selector (shown before finalize) ---------- */
+function showFormatSelector(){
+  const hasCompanions=S._hasCompanions||false;  // set during companion stage
+  const companionType=S._companionType||"image"; // "image"|"audio"|"text"|"video"
+  const hfDesc={
+    image:"images embedded as PIL — no separate files needed",
+    audio:"waveforms embedded — feeds Wav2Vec2 / Whisper",
+    text:"text strings in Arrow — tokenize in training loop",
+    video:"frame arrays in HDF5",
+  }[companionType]||"companions embedded, feeds HF Trainer / DataLoader";
+
+  const fmts=[
+    {id:"csv",     label:"CSV",     sub:"universal · opens in Excel / Sheets / any tool"},
+    {id:"parquet", label:"Parquet", sub:"typed · compressed · 5-10× faster for pandas / DuckDB"},
+    ...(hasCompanions?[{id:"hf", label:"HF Dataset", sub:hfDesc}]:[]),
+  ];
+  // Defaults: csv always; hf when companions present
+  const defaults=new Set(["csv",...(hasCompanions?["hf"]:[])]);
+
+  const node=document.createElement("div");
+  node.className="msg agent";
+  node.style.maxWidth="94%";
+  node.innerHTML=`<div class="bubble">
+    <div style="font-weight:650;font-size:13px;margin-bottom:10px">
+      All stages complete. Choose your output format(s):
+    </div>
+    <div class="fmt-btns" id="fmt-btns">
+      ${fmts.map(f=>`
+        <button class="fmt-btn${defaults.has(f.id)?" sel":""}" data-fmt="${f.id}">
+          ${esc(f.label)}<span class="fsub">${esc(f.sub)}</span>
+        </button>`).join("")}
+    </div>
+    <button class="btn proceed" id="fmt-confirm" style="margin-top:14px;width:auto;padding:9px 22px">
+      Generate outputs
+    </button>
+  </div>`;
+  addRaw(node);
+
+  const sel=new Set(defaults);
+  node.querySelectorAll(".fmt-btn").forEach(btn=>{
+    btn.onclick=()=>{
+      const f=btn.dataset.fmt;
+      if(sel.has(f)){if(sel.size>1)sel.delete(f);}else{sel.add(f);}
+      node.querySelectorAll(".fmt-btn").forEach(b=>
+        b.classList.toggle("sel",sel.has(b.dataset.fmt)));
+    };
+  });
+  const confirmBtn=node.querySelector("#fmt-confirm");
+  confirmBtn.onclick=()=>{
+    confirmBtn.disabled=true;
+    confirmBtn.classList.add("btn-loading");
+    confirmBtn.textContent="Generating…";
+    node.querySelectorAll(".fmt-btn").forEach(b=>b.disabled=true);
+    finalize([...sel]);
+  };
+}
+
+/* ---------- finalize ---------- */
+async function finalize(outputFormats){
+  const preferredFmt=(outputFormats||["csv"])[0];
+  addMsg(`All stages complete. Compiling the output artifacts…`);
+  let data;
+  try{
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),120000); // 2-min hard cap
+    const r=await fetch(API+`/api/session/${S.sid}/finalize`,{
+      method:"POST", signal:ctrl.signal,
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({output_formats:outputFormats||["csv"]})});
+    clearTimeout(timer);
+    if(!r.ok){
+      let friendly="", detail="";
+      try{
+        const j=await r.json();
+        const d=j.detail!==undefined?j.detail:j;
+        // FastAPI 422 returns detail as an array of {loc,msg,type} objects
+        if(Array.isArray(d)){
+          detail=d.map(e=>{
+            if(e&&typeof e==="object"){
+              const loc=Array.isArray(e.loc)?e.loc.join(" → "):(e.loc||"");
+              return (loc?loc+": ":"")+(e.msg||JSON.stringify(e));
+            }
+            return String(e);
+          }).join("\n");
+        } else if(d&&typeof d==="object"){
+          // Structured 500 detail: {message, error, traceback}
+          friendly=d.message||"";
+          detail=[d.error,d.traceback].filter(Boolean).join("\n\n")||JSON.stringify(d,null,2);
+        } else {
+          detail=String(d);
+        }
+      }
+      catch(_){ detail=await r.text().catch(()=>""); }
+      const preview=esc(String(detail).slice(0,1200)).replace(/\n/g,"<br>");
+      const lead=friendly?esc(friendly):"Something went wrong while finalizing.";
+      addMsg(`<b>Finalize failed (${r.status}).</b> ${lead}<br>
+        <details><summary style="cursor:pointer;font-size:12px;color:var(--text2)">
+          Technical details (copy to report a bug)</summary>
+          <pre style="font-size:11px;white-space:pre-wrap;max-height:300px;overflow:auto;
+            background:var(--bg2);padding:8px;border-radius:4px;margin-top:6px">${preview}</pre>
+        </details>`);
+      return;
+    }
+    data=await r.json();
+  }catch(e){
+    addMsg(`<b>Finalize error:</b> ${esc(String(e))}<br>
+      Check the server logs. Your session data is still intact — try again or reload.`);
+    return;
+  }
+  const s=data.summary;
+  addMsg(`<b>Cleaning complete.</b><br>
+    Rows: ${s.rows_in.toLocaleString()} → ${s.rows_out.toLocaleString()} &nbsp;·&nbsp;
+    Columns: ${s.cols_in.toLocaleString()} → ${s.cols_out.toLocaleString()}<br>
+    ${s.n_decisions.toLocaleString()} decisions logged,
+    ${s.n_overrides.toLocaleString()} of them your own choice.
+    Download your artifacts in the sidebar.`);
+  // Reproducibility check result
+  if(data.reproducibility_check){
+    const rc=data.reproducibility_check;
+    const node=document.createElement("div");
+    node.className="msg agent";node.style.maxWidth="94%";
+    if(rc.match){
+      node.innerHTML=`<div class="bubble" style="border-left:3px solid var(--green,#2e7d32);padding-left:14px;font-size:13px">
+        ✓ <b>Reproducibility check passed</b> — script replay matches the session output exactly
+        (${rc.rows_replay.toLocaleString()} rows × ${rc.cols_replay} cols).
+      </div>`;
+    } else if(rc.timed_out){
+      // A timeout is NOT a failure — the replay simply ran longer than the
+      // verification budget. The script itself is unverified, not wrong.
+      node.innerHTML=`<div class="bubble" style="border-left:3px solid var(--blue,#3a6ea5);padding-left:14px;font-size:13px">
+        ⏱ <b>Reproducibility check timed out — not a failure</b><br>
+        <span style="color:var(--fg2,#888)">The replay didn't finish within the verification time limit, so the
+        check couldn't confirm an exact match. This is common for large datasets or heavier imputation (MICE) and does
+        not mean the script is incorrect — only that it wasn't verified automatically. You can re-run
+        <code>python clean_script.py</code> yourself to confirm.</span>
+      </div>`;
+    } else if(rc.crashed){
+      const stderrHtml=rc.stderr?`<pre style="font-size:10px;max-height:160px;overflow:auto;background:var(--bg2);padding:6px;border-radius:4px;margin-top:6px">${esc(rc.stderr.slice(0,1200))}</pre>`:"";
+      const hint=`Script exited with code ${rc.returncode}.`;
+      node.innerHTML=`<div class="bubble" style="border-left:3px solid var(--amber,#e07b39);padding-left:14px;font-size:13px">
+        ⚠ <b>Reproducibility check — script crashed</b><br>
+        <span style="color:var(--fg2,#888)">${esc(hint)} The generated script ran into an error when replayed against the source file.
+        This usually means the source file schema changed after the session was created, or a required dependency is missing.
+        The script is still valid for the original data.</span>
+        ${stderrHtml}
+      </div>`;
+    } else {
+      const diff=rc.col_diff||{};
+      const missing=(diff.only_in_session||[]).join(", ")||"none";
+      const extra=(diff.only_in_replay||[]).join(", ")||"none";
+      const stderr=rc.stderr?`<br><pre style="font-size:10px;max-height:120px;overflow:auto;background:var(--bg2);padding:6px;border-radius:4px">${esc(rc.stderr.slice(0,800))}</pre>`:"";
+      node.innerHTML=`<div class="bubble" style="border-left:3px solid var(--amber,#e07b39);padding-left:14px;font-size:13px">
+        ⚠ <b>Reproducibility check mismatch</b><br>
+        Session: ${rc.rows_session.toLocaleString()} rows × ${rc.cols_session} cols &nbsp;·&nbsp;
+        Replay: ${rc.rows_replay.toLocaleString()} rows × ${rc.cols_replay} cols<br>
+        Cols only in session: <code>${esc(missing)}</code><br>
+        Cols only in replay: <code>${esc(extra)}</code>
+        ${stderr}
+      </div>`;
+    }
+    addRaw(node);
+  }
+  if(data.usage_advice){
+    // Render LLM usage advice as a styled card below the summary.
+    const node=document.createElement("div");
+    node.className="msg agent";node.style.maxWidth="94%";
+    node.innerHTML=`<div class="who">Distill Agent</div>
+      <div class="bubble" style="border-left:3px solid var(--green);padding-left:14px;line-height:1.6">
+        ${mdLite(data.usage_advice)}
+      </div>`;
+    addRaw(node);
+  }
+  const labels={clean_csv:"Clean data (CSV)",clean_tsv:"Clean data (TSV)",
+    clean_xlsx:"Clean data (Excel)",clean_parquet:"Clean data (Parquet)",
+    clean_json:"Clean data (JSON)",report_md:"Report (Markdown)",
+    report_pdf:"Report (PDF)",flowchart_png:"Flowchart (PNG)",
+    flowchart_svg:"Flowchart (SVG)",decisions:"Decision log (JSON)",
+    clean_script:"Reproducible script (.py)",
+    companion_manifest:"Companion manifest (.json) ⚠ required by script"};
+  const out=document.getElementById("outputs");
+  out.innerHTML="";
+  // Sort entries so the preferred format appears first.
+  const entries=Object.entries(data.artifacts);
+  const prefKey="clean_"+preferredFmt;
+  entries.sort(([a],[b])=>{
+    if(a===prefKey)return -1; if(b===prefKey)return 1; return 0;
+  });
+  entries.forEach(([k,fname])=>{
+    const a=document.createElement("a");
+    a.href=API+`/api/session/${S.sid}/artifact/${encodeURIComponent(fname)}`;
+    a.textContent=labels[k]||fname;a.setAttribute("download",fname);
+    if(k===prefKey)a.style.fontWeight="700";
+    out.appendChild(a);
+  });
+  const all=document.createElement("a");
+  all.className="all";
+  all.href=API+`/api/session/${S.sid}/download_all`;
+  all.textContent="↓ Download all (zip)";
+  all.setAttribute("download","");
+  out.appendChild(all);
+  // Record artifact filenames for post-session usage snippets.
+  S._cleanSrc  = data.artifacts.clean_csv || data.artifacts.clean_parquet || data.artifacts.clean_xlsx || "clean.csv";
+  S._cleanScript = data.artifacts.clean_script || "clean_script.py";
+  S._rawSrc    = (data.summary && data.summary.dataset) || "your_raw_data.csv";
+  _addUsageChips();
+  S.stageIdx=STAGES.length;paintStages();
+}
+
+/* ---------- variable inspector ---------- */
+function buildTabs(profile){
+  const el=document.getElementById("tabs");
+  el.innerHTML=profile.map(p=>
+    `<div class="tab" data-v="${esc(p.name)}">${esc(p.name)}</div>`).join("");
+  el.querySelectorAll(".tab").forEach(t=>
+    t.onclick=()=>inspectVar(t.dataset.v));
+  // Auto-show the first variable so the inspector is never blank.
+  if(profile.length>0)inspectVar(profile[0].name);
+}
+function refreshTabs(newCols){
+  // Add tabs for any new columns not yet in the tab strip, then inspect first new one.
+  if(!newCols||!newCols.length)return;
+  const el=document.getElementById("tabs");
+  newCols.forEach(col=>{
+    if(!el.querySelector(`[data-v="${CSS.escape(col)}"]`)){
+      const t=document.createElement("div");
+      t.className="tab";t.dataset.v=col;t.textContent=col;
+      t.onclick=()=>inspectVar(col);
+      el.appendChild(t);
+    }
+  });
+  inspectVar(newCols[0]);
+}
+function rebuildTabs(cols){
+  const el=document.getElementById("tabs");
+  el.innerHTML=cols.map(c=>`<div class="tab" data-v="${esc(c)}">${esc(c)}</div>`).join("");
+  el.querySelectorAll(".tab").forEach(t=>t.onclick=()=>inspectVar(t.dataset.v));
+  S.columns=cols;
+  if(cols.length>0)inspectVar(cols[0]);
+}
+
+async function inspectVar(name){
+  S.activeVar=name;
+  document.querySelectorAll(".tab").forEach(t=>
+    t.classList.toggle("active",t.dataset.v===name));
+  const r=await fetch(API+`/api/session/${S.sid}/variable/${encodeURIComponent(name)}`);
+  if(!r.ok){document.getElementById("inspBody").innerHTML=
+    `<div class="insp-empty">Variable not available.</div>`;return;}
+  renderInspector(await r.json());
+}
+function renderInspector(d){
+  const body=document.getElementById("inspBody");
+  const missPct=(d.missing_rate*100).toFixed(1);
+  let html="";
+  if(d.description){
+    const src=d.description_source;
+    const isDoc=(src==="documentation");
+    const badge=isDoc
+      ?`<span class="desc-badge doc">From docs</span>`
+      :`<span class="desc-badge ai">AI inference</span>`;
+    const note=isDoc?"":`<div style="font-size:10.5px;color:var(--text3);margin-top:4px;">
+      ⚠ AI-inferred from variable name and statistics — consult the codebook to confirm.</div>`;
+    html+=`<div class="var-desc ${isDoc?"from-docs":"ai-inferred"}">${badge}${mdLite(d.description)}${note}</div>`;
+  }
+  html+=`<div class="miss-bar">
+    <div class="lab"><span>Missing</span><span>${missPct}% (${(+d.n_missing).toLocaleString()})</span></div>
+    <div class="track"><div class="fill" style="width:${Math.min(d.missing_rate*100,100)}%;
+      background:${d.missing_rate>.15?'#E24B4A':d.missing_rate>.05?'#EF9F27':'#1D9E75'}"></div></div>
+  </div>`;
+  if(d.kind==="numeric"&&d.bins&&d.bins.length){
+    html+=`<div class="stats">
+      <div class="stat"><div class="v">${fmt(d.mean)}</div><div class="k">mean</div></div>
+      <div class="stat"><div class="v">${fmt(d.median)}</div><div class="k">median</div></div>
+      <div class="stat"><div class="v">${fmt(d.std)}</div><div class="k">std dev</div></div>
+    </div>
+    <div class="chart-lbl">Distribution</div>
+    <div class="chart-box"><canvas id="hist"></canvas></div>`;
+    if(d.n_missing>0)html+=`<div class="miss-note">Note: ${(+d.n_missing).toLocaleString()} missing value(s) (${(d.missing_rate*100).toFixed(1)}%) excluded from chart.</div>`;
+    body.innerHTML=html;
+    drawHist(d);
+  }else if(d.kind==="categorical"){
+    const topN=(d.top_values||[]).slice(0,12);
+    const chartH=Math.max(140,Math.min(300,topN.length*26+30));
+    html+=`<div class="stats">
+      <div class="stat"><div class="v">${(+d.n_unique).toLocaleString()}</div><div class="k">unique</div></div>
+      <div class="stat"><div class="v">${(d.n_total-d.n_missing).toLocaleString()}</div><div class="k">present</div></div>
+      <div class="stat"><div class="v">${(+d.n_missing).toLocaleString()}</div><div class="k">missing</div></div>
+    </div>`;
+    if(topN.length>0){
+      html+=`<div class="chart-lbl">Distribution</div>
+        <div class="chart-box" style="height:${chartH}px"><canvas id="catbar"></canvas></div>`;
+    }
+    html+=`<div class="chart-lbl" style="margin-top:8px;">Top values</div><div class="toplist">`;
+    topN.forEach(([k,v])=>{
+      html+=`<div class="toprow"><span>${esc(k)}</span><span class="c">${(+v).toLocaleString()}</span></div>`;});
+    html+=`</div>`;
+    if(d.n_missing>0)html+=`<div class="miss-note">Note: ${(+d.n_missing).toLocaleString()} missing value(s) (${(d.missing_rate*100).toFixed(1)}%) excluded from visualization.</div>`;
+    body.innerHTML=html;
+    if(topN.length>0)drawCatBar(d);
+  }else{
+    body.innerHTML=html+`<div class="insp-empty">No distribution available.</div>`;
+  }
+}
+function drawHist(d){
+  const ctx=document.getElementById("hist");
+  if(S.chart)S.chart.destroy();
+  const labels=d.bin_edges.slice(0,-1).map(e=>fmt(e));
+  S.chart=new Chart(ctx,{type:"bar",data:{labels,
+    datasets:[{data:d.bins,backgroundColor:"#378ADDcc",borderColor:"#185FA5",
+      borderWidth:.5,borderRadius:2}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,resizeDelay:80,
+      plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:8},maxRotation:0,autoSkip:true,maxTicksLimit:6},
+        grid:{display:false}},
+        y:{ticks:{font:{size:8}},grid:{color:"rgba(0,0,0,.05)"}}}}});
+}
+
+function drawCatBar(d){
+  const ctx=document.getElementById("catbar");
+  if(!ctx)return;
+  if(S.chart)S.chart.destroy();
+  const topN=(d.top_values||[]).slice(0,12);
+  const labels=topN.map(([k])=>String(k));
+  const vals=topN.map(([,v])=>+v);
+  S.chart=new Chart(ctx,{type:"bar",data:{labels,
+    datasets:[{data:vals,backgroundColor:"#378ADDcc",borderColor:"#185FA5",
+      borderWidth:.5,borderRadius:2}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      animation:false,resizeDelay:80,
+      plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:8}},grid:{color:"rgba(0,0,0,.05)"}},
+        y:{ticks:{font:{size:8},maxRotation:0},grid:{display:false}}}}});
+}
+
+/* ---------- post-session usage quick-answers (no LLM needed) ---------- */
+function _usageAnswer(q){
+  const src=S._cleanSrc||"clean.csv";        // filename recorded at finalize
+  const script=S._cleanScript||"clean_script.py";
+  const raw=S._rawSrc||"your_raw_data.csv";
+  // Anything that isn't a pure "how do I load/read the clean CSV" question → LLM.
+  if(/\bscript\b|terminal|command.*line|from.*scratch|rerun|re-run|reapply|reproduce|pipeline|\brun\b|\bwhere\b|\bsav|\boutput\b|\bwrit|\bdirector|\bfolder\b/i.test(q)) return null;
+  const isColab=/colab|google.*colab/i.test(q);
+  const isPy=/\bpython\b|pandas|jupyter|\.py\b/i.test(q);
+  const isR=/\br\b|\brstudio\b|tidyverse|readr|data\.table/i.test(q);
+  const isLoad=/\bload\b|\bimport\b|\bread\b|\bopen\b/i.test(q);
+
+  if(isColab){
+    return`**Using your clean data in Google Colab**
+
+**Option 1 — upload from your computer:**
+\`\`\`python
+from google.colab import files
+import pandas as pd, io
+uploaded = files.upload()          # select ${src}
+df = pd.read_csv(io.BytesIO(list(uploaded.values())[0]))
+print(df.shape)
+\`\`\`
+
+**Option 2 — load from Google Drive:**
+\`\`\`python
+from google.colab import drive
+drive.mount('/content/drive')
+import pandas as pd
+df = pd.read_csv('/content/drive/MyDrive/${src}')
+print(df.shape)
+\`\`\``;
+  }
+
+  if(isR){
+    return`**Loading your clean data in R**
+
+\`\`\`r
+library(readr)
+df <- read_csv("${src}")
+glimpse(df)
+\`\`\`
+
+Or with data.table (faster for large files):
+\`\`\`r
+library(data.table)
+df <- fread("${src}")
+\`\`\``;
+  }
+
+  if(isPy||isLoad){
+    return`**Loading your clean data in Python**
+
+\`\`\`python
+import pandas as pd
+df = pd.read_csv("${src}")
+print(df.shape, "\\n", df.dtypes)
+\`\`\`
+
+In a Jupyter notebook, add:
+\`\`\`python
+df.head()         # preview rows
+df.describe()     # summary stats on the clean data
+\`\`\``;
+  }
+
+  return null;   // no local match — fall through to LLM
+}
+
+function _addUsageChips(){
+  const raw=S._rawSrc||"your data file";
+  const chips=[
+    {label:"Load in Python / Jupyter", q:"How do I load the clean data in Python?"},
+    {label:"Use in Google Colab",       q:"How do I use the clean data in Google Colab?"},
+    {label:"Run cleaning script",       q:`How do I run the cleaning script on ${raw}?`},
+    {label:"Load in R",                 q:"How do I load the clean data in R?"},
+  ];
+  const wrap=document.createElement("div");
+  wrap.style.cssText="display:flex;flex-wrap:wrap;gap:6px;padding:4px 12px 10px;";
+  chips.forEach(({label,q})=>{
+    const b=document.createElement("button");
+    b.className="cbtn inspect";
+    b.style.cssText="font-size:12px;padding:4px 10px;";
+    b.textContent=label;
+    b.onclick=async()=>{
+      wrap.querySelectorAll(".cbtn").forEach(el=>el.classList.add("chip-sending"));
+      await new Promise(r=>setTimeout(r,290));
+      wrap.remove();
+      addMsg(esc(q),"user");
+      const local=_usageAnswer(q);
+      if(local){addMsg(mdLite(local));_addUsageChips();return;}
+      await _streamChat(q);
+    };
+    wrap.appendChild(b);
+  });
+  const node=document.createElement("div");
+  node.className="msg agent";
+  node.appendChild(wrap);
+  addRaw(node);
+}
+
+/* ---------- chat box ---------- */
+document.getElementById("chatSend").onclick=sendChat;
+document.getElementById("chatInput").onkeydown=e=>{if(e.key==="Enter")sendChat();};
+
+async function _streamChat(q){
+  /* Send question to the SSE streaming endpoint; returns when stream ends. */
+  const waitEl=addMsg("","agent");
+  const bubble=waitEl.querySelector(".bubble");
+  bubble.classList.add("stream-cursor");
+  let fullText="";
+  let errMsg="";   // set when an error is surfaced so finally doesn't overwrite it
+  try{
+    const r=await fetch(API+`/api/session/${S.sid}/chat/stream`,{method:"POST",
+      headers:{"Content-Type":"application/json"},body:JSON.stringify({question:q})});
+    if(!r.ok){
+      let detail="";
+      try{detail=await r.text();}catch(_){}
+      errMsg=`Chat error (${r.status})${detail?": "+detail.slice(0,300):""}`;
+      return;
+    }
+    const reader=r.body.getReader();
+    const dec=new TextDecoder();
+    let buf="";
+    outer: while(true){
+      const {done,value}=await reader.read();
+      if(done)break;
+      buf+=dec.decode(value,{stream:true});
+      const lines=buf.split("\n");
+      buf=lines.pop();
+      for(const line of lines){
+        if(!line.startsWith("data: "))continue;
+        const raw=line.slice(6).trim();
+        if(raw==="[DONE]")break outer;
+        try{
+          const ev=JSON.parse(raw);
+          if(ev.token){fullText+=ev.token;bubble.innerHTML=mdLite(fullText);_scrollChat();}
+          if(ev.error){errMsg="Chat error: "+ev.error;break outer;}
+        }catch(_){}
+      }
+    }
+  }catch(e){
+    errMsg="Chat error: "+e.message;
+  }finally{
+    bubble.classList.remove("stream-cursor");
+    if(errMsg)       bubble.textContent=errMsg;
+    else if(fullText) bubble.innerHTML=mdLite(fullText);
+    else             bubble.textContent="(no response — check server logs)";
+  }
+  if(S._cleanSrc)_addUsageChips();
+}
+
+async function sendChat(){
+  const inp=document.getElementById("chatInput");
+  const q=inp.value.trim();if(!q||!S.sid)return;
+  inp.value="";addMsg(esc(q),"user");
+  const local=_usageAnswer(q);
+  if(local){addMsg(mdLite(local));if(S._cleanSrc)_addUsageChips();return;}
+  await _streamChat(q);
+}
+
+/* ---------- feature engineering ---------- */
+async function runFeatureEngineering(){
+  S.resolutions["feature_engineering"]={};
+  const r=await fetch(API+`/api/session/${S.sid}/feature_engineering/detect`,{method:"POST"});
+  const data=await r.json();
+  const pend=(data.cards||[]).filter(c=>c.status==="pending");
+  const info=(data.cards||[]).filter(c=>c.status!=="pending");
+  S._fePendingCount=pend.length;
+
+  const feCols=(data.columns||[]).map(c=>typeof c==="string"?c:c.name);
+  const feColsToUse=feCols.length?feCols:S.columns;
+
+  if(pend.length>0){
+    addMsg(`<b>Feature Engineering</b> — I found <b>${pend.length}</b> suggestion(s) `+
+      `to review one at a time. After you answer each one, the transform panel will appear.`);
+    info.forEach(c=>addMsg(`<div class="info-line">${esc(c.issue)}</div>`));
+    S._cardQueues["feature_engineering"]=[...pend];
+    showNextCard("feature_engineering",()=>{
+      addFESelector(feColsToUse);
+      addFEStageCTA(pend.length);
+    });
+  }else{
+    addMsg(`<b>Feature Engineering</b> — no automatic suggestions for this dataset. `+
+      `Use the panel below if you'd like to apply optional transforms.`);
+    info.forEach(c=>addMsg(`<div class="info-line">${esc(c.issue)}</div>`));
+    addFESelector(feColsToUse);
+    addFEDoneBtn();
+  }
+}
+
+function addFEStageCTA(nPending){
+  const wrap=document.createElement("div");
+  wrap.className="stage-cta";
+  wrap.innerHTML=`<button class="btn proceed" id="cta-feature_engineering">
+    Apply Feature Engineering — proceed to finalize</button>`;
+  addRaw(wrap);
+  S._ctaTotal=nPending;
+  wrap.querySelector("button").onclick=()=>applyFeatureEngineering();
+  S._cta=wrap.querySelector("button");
+}
+
+function addFEDoneBtn(){
+  const wrap=document.createElement("div");
+  wrap.className="stage-cta";
+  wrap.innerHTML=`<button class="btn proceed">Done — proceed to finalize</button>`;
+  addRaw(wrap);
+  wrap.querySelector("button").onclick=()=>{wrap.remove();advancePastFE();};
+}
+
+async function applyFeatureEngineering(){
+  const res=Object.values(S.resolutions["feature_engineering"]||{});
+  const r=await fetch(API+`/api/session/${S.sid}/feature_engineering/resolve`,{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({resolutions:res})});
+  const data=await r.json();
+  if(S._cta){S._cta.parentElement.remove();S._cta=null;}
+  const ov=(data.applied||[]).filter(a=>a.status==="overridden").length;
+  addMsg(`Applied <b>Feature Engineering</b>: ${(data.applied||[]).length} `+
+    `suggestion(s)${ov?`, ${ov} of them your own choice`:""}. `+
+    `Dataset now ${data.n_rows.toLocaleString()} rows × ${data.n_cols} columns.`);
+  refreshStatus();
+  // Refresh inspector tabs to include any new derived columns.
+  if(data.columns&&data.columns.length){
+    const existingTabs=new Set(Array.from(document.querySelectorAll(".tab")).map(t=>t.dataset.v));
+    const newCols=(data.columns||[]).filter(c=>!existingTabs.has(c));
+    if(newCols.length)refreshTabs(newCols);
+  }
+  advancePastFE();
+}
+
+function advancePastFE(){
+  const idx=STAGES.indexOf("feature_engineering");
+  S.stageIdx=idx+1;paintStages();
+  promptFormatThenFinalize();
+}
+
+function promptFormatThenFinalize(){
+  // Delegate to the multi-select picker (CSV / Parquet / HF Dataset).
+  // HF Dataset is offered only when companions are present; for plain
+  // tabular sessions only CSV + Parquet are shown. All choices flow to
+  // finalize() as an array of format ids the backend script emitter
+  // understands ("csv", "parquet", "hf").
+  showFormatSelector();
+}
+
+function addFESelector(cols){
+  const allCols=cols||S.columns;
+  const node=document.createElement("div");
+  node.className="msg agent";node.style.maxWidth="96%";
+  node.innerHTML=`
+    <div class="fe-panel">
+      <div class="fe-panel-head">Apply custom transforms (optional — takes effect immediately)</div>
+      <div class="fe-row">
+        <input class="fe-search" id="feColSearch" placeholder="Filter columns…" autocomplete="off">
+        <select class="fe-col-select" id="feColSelect">
+          ${allCols.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("")}
+        </select>
+        <select class="fe-op-select" id="feOpSelect">
+          <option value="">— choose operation —</option>
+          <optgroup label="Binning">
+            <option value="bin_equal_width">Equal-width bins</option>
+            <option value="bin_quantile">Quantile bins</option>
+            <option value="bin_natural_breaks">Natural-break bins</option>
+          </optgroup>
+          <optgroup label="Scaling">
+            <option value="scale_standard">Standardise (z-score)</option>
+            <option value="scale_minmax">Scale to [0, 1]</option>
+            <option value="scale_robust">Robust scale (median/IQR)</option>
+            <option value="scale_log">Log-transform (log1p)</option>
+          </optgroup>
+          <optgroup label="Encoding">
+            <option value="frequency_encode">Frequency encode</option>
+            <option value="datetime_decompose">Decompose datetime</option>
+          </optgroup>
+        </select>
+        <button class="btn" id="feAddBtn" disabled>Add</button>
+      </div>
+      <div class="fe-params" id="feParamsRow" style="display:none"></div>
+      <div class="fe-applied" id="feApplied"></div>
+      <div class="fe-row" style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">
+        <input id="feCustomInput" class="fe-search" style="flex:1;max-width:none"
+          placeholder="Or describe a transform in your own words (e.g. log-transform income)…" autocomplete="off">
+        <button class="btn ghost" id="feCustomSend">Ask agent</button>
+      </div>
+    </div>`;
+  addRaw(node);
+
+  const colSearch=node.querySelector("#feColSearch");
+  const colSelect=node.querySelector("#feColSelect");
+  const opSelect=node.querySelector("#feOpSelect");
+  const addBtn=node.querySelector("#feAddBtn");
+  const paramsRow=node.querySelector("#feParamsRow");
+  const applied=node.querySelector("#feApplied");
+  const customInput=node.querySelector("#feCustomInput");
+  const customSend=node.querySelector("#feCustomSend");
+  function sendCustomRequest(){
+    const q=customInput.value.trim();
+    if(!q||!S.sid)return;
+    customInput.value="";
+    addMsg(esc(q),"user");
+    _streamChat(q);
+  }
+  customSend.onclick=sendCustomRequest;
+  customInput.onkeydown=e=>{if(e.key==="Enter")sendCustomRequest();};
+
+  colSearch.oninput=()=>{
+    const q=colSearch.value.toLowerCase();
+    Array.from(colSelect.options).forEach(o=>{o.hidden=!!(q&&!o.value.toLowerCase().includes(q));});
+    const first=Array.from(colSelect.options).find(o=>!o.hidden);
+    if(first)colSelect.value=first.value;
+  };
+
+  opSelect.onchange=()=>{
+    const op=opSelect.value;
+    addBtn.disabled=!op;
+    if(op.startsWith("bin_")){
+      paramsRow.style.display="";
+      paramsRow.innerHTML=`<span>Number of bins:</span>
+        <input type="number" id="feBins" value="4" min="2" max="20">`;
+    }else if(op==="datetime_decompose"){
+      paramsRow.style.display="";
+      paramsRow.innerHTML=`<span>Components:</span>`+
+        ["year","month","day","dayofweek","hour","is_weekend"].map(c=>
+          `<label><input type="checkbox" value="${c}" checked> ${c}</label>`).join("");
+    }else{
+      paramsRow.style.display="none";paramsRow.innerHTML="";
+    }
+  };
+
+  addBtn.onclick=async()=>{
+    const col=colSelect.value;
+    const op=opSelect.value;
+    if(!col||!op)return;
+    const params={};
+    if(op.startsWith("bin_")){
+      const nb=node.querySelector("#feBins");
+      params.n_bins=nb?Math.max(2,parseInt(nb.value,10)||4):4;
+    }else if(op==="datetime_decompose"){
+      params.components=Array.from(paramsRow.querySelectorAll("input[type=checkbox]:checked"))
+        .map(cb=>cb.value);
+      if(!params.components.length)params.components=["year","month","day","dayofweek","hour","is_weekend"];
+    }
+    addBtn.disabled=true;addBtn.textContent="Adding…";
+    try{
+      const r=await fetch(API+`/api/session/${S.sid}/feature_engineering/transform`,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({col,operation:op,params})});
+      if(!r.ok){
+        const e=await r.json().catch(()=>({}));
+        addMsg(`Could not apply transform: ${esc(e.detail||"unknown error")}`);
+      }else{
+        const d=await r.json();
+        const tag=document.createElement("div");
+        tag.className="fe-tag";
+        const newColList=d.new_cols||[];
+        const newColLabel=newColList.join(", ");
+        tag.textContent=`${col}: ${op.replace(/_/g," ")}${newColLabel?" → "+newColLabel:""}`;
+        applied.appendChild(tag);
+        refreshStatus();
+        // Auto-inspect the first new column so the user sees its distribution immediately.
+        if(newColList.length>0)refreshTabs(newColList);
+      }
+    }catch(e){addMsg("Transform error: "+esc(e.message));}
+    addBtn.disabled=false;addBtn.textContent="Add";
+  };
+}
+
+/* ---------- util ---------- */
+async function refreshStatus(){
+  const r=await fetch(API+`/api/session/${S.sid}/status`);
+  if(r.ok){const st=await r.json();setStats(st);}
+}
+function esc(s){return String(s==null?"":s)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function mdLite(s){
+  s=String(s==null?"":s);
+  /* Extract fenced code blocks before line processing so their content is
+     never escaped or split by the heading/bullet logic. */
+  const blocks=[];
+  s=s.replace(/```(\w*)\n?([\s\S]*?)```/g,(_,lang,code)=>{
+    const i=blocks.length;
+    const langAttr=lang?` class="language-${esc(lang)}"`:""
+    blocks.push(`<pre style="background:var(--bg2,#f3f4f6);border-radius:6px;padding:10px 14px;overflow-x:auto;font-size:12px;margin:6px 0"><code${langAttr}>${esc(code.replace(/^\n/,""))}</code></pre>`);
+    return`\x00BLOCK${i}\x00`;
+  });
+  /* Line-level: headers, bullets; blank lines become spacers. */
+  const out=s.split("\n").map(l=>{
+    if(/^###\s+/.test(l)) return`<b style="font-size:13px;display:block;margin-top:10px">${esc(l.replace(/^###\s+/,""))}</b>`;
+    if(/^##\s+/.test(l))  return`<b style="font-size:14px;display:block;margin-top:10px">${esc(l.replace(/^##\s+/,""))}</b>`;
+    if(/^#\s+/.test(l))   return`<b style="font-size:15px;display:block;margin-top:10px">${esc(l.replace(/^#\s+/,""))}</b>`;
+    if(/^[-*]\s+/.test(l))return`<span style="display:block;padding-left:12px">• ${esc(l.replace(/^[-*]\s+/,""))}</span>`;
+    if(l.trim()==="")     return`<span style="display:block;height:6px"></span>`;
+    return esc(l);
+  });
+  /* Inline: **bold** and `code`, then restore fenced blocks. */
+  return out.join("<br>")
+    .replace(/\*\*([^*<]+)\*\*/g,"<b>$1</b>")
+    .replace(/`([^`<]+)`/g,"<code>$1</code>")
+    .replace(/\x00BLOCK(\d+)\x00/g,(_,i)=>blocks[+i]);
+}
+function fmt(n){
+  if(n==null)return"—";
+  const a=Math.abs(n);
+  if(Number.isInteger(n)||a>=100&&Math.abs(n-Math.round(n))<0.5)
+    return Math.round(n).toLocaleString();
+  if(a>=1)return n.toLocaleString(undefined,{minimumFractionDigits:1,maximumFractionDigits:1});
+  return n.toFixed(3);
+}
+</script>
+</body>
+</html>
