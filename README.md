@@ -15,15 +15,15 @@ We built **Distill Agent** to be the distillation device for data. AI handles th
 
 ## What to expect from Distill Agent?
 
-Analysts spend time on judgment calls that require expertise — not on boilerplate inspection and imputation code. At the end of every session, a self-contained Python script is generated so you can reproduce the clean dataset from your original upload with a single command.
+★ **Efficiency.** Analysts spend time on judgment calls that require expertise — not on boilerplate inspection and imputation code. At the end of every session, a self-contained Python script is generated so you can reproduce the clean dataset from your original upload with a single command.
 
-The agent is a co-pilot, not an autopilot. It handles the mechanical work autonomously and surfaces every judgment call as a structured decision card — so you stay in the driver's seat, with a clear rationale attached to every choice.
+★ **Human-in-the-loop.** The agent is a co-pilot, not an autopilot. It handles the mechanical work autonomously and surfaces every judgment call as a structured decision card — so you stay in the driver's seat, with a clear rationale attached to every choice.
 
-No coding required. Any analyst can complete a full cleaning session through the chat interface and walk away with production-ready outputs, audit reports, and figures. Every decision card is written in plain language, so domain experts — not just data engineers — can meaningfully review and override recommendations.
+★ **Accessibility.** No coding required. Any analyst can complete a full cleaning session through the chat interface and walk away with production-ready outputs, audit reports, and figures. Every decision card is written in plain language, so domain experts — not just data engineers — can meaningfully review and override recommendations.
 
-The entire session can be re-run from scratch, shared with collaborators, or attached as a methods appendix. The agent automatically verifies that the emitted script reproduces the result before closing the session. Every decision has a justification — no black-box transformations, no silent drops, no undocumented changes.
+★ **Reproducibility.** The entire session can be re-run from scratch, shared with collaborators, or attached as a methods appendix. The agent automatically verifies that the emitted script reproduces the result before closing the session. Every decision has a justification — no black-box transformations, no silent drops, no undocumented changes.
 
-The JSON decision log is machine-readable, making Distill Agent a first-class component in larger multi-agent pipelines. Cleaning a similar dataset later? Upload the log and skip re-explaining the whole process.
+★ **Composability.** The JSON decision log is machine-readable, making Distill Agent a first-class component in larger multi-agent pipelines. Cleaning a similar dataset later? Upload the log and skip re-explaining the whole process.
 
 ---
 
