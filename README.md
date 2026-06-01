@@ -10,30 +10,29 @@ Data is to data scientists what water is to life — and just as you can't survi
 
 
 We built **Distill Agent** to be the distillation device for data. AI handles the mechanical, pattern-detection work **autonomously** — writing and executing the code — while the human analyst keeps **full control** over the judgment calls that require domain knowledge. And like a well-run water utility, nothing happens in the dark: every decision, automated or human, is **logged**, **justified**, and compiled into a **reproducible** set of outputs — including a standalone Python script that regenerates the cleaned data with no agent in the loop. Clean data you can drink, and a record of exactly how it was treated.
+
 ---
 
 ## What to expect from Distill Agent?
 
-**Efficiency.** Analysts spend time on judgment calls that require expertise — not on boilerplate inspection and imputation code. At the end of every session, a self-contained Python script is generated so you can reproduce the clean dataset from your original upload with a single command.
+Analysts spend time on judgment calls that require expertise — not on boilerplate inspection and imputation code. At the end of every session, a self-contained Python script is generated so you can reproduce the clean dataset from your original upload with a single command.
 
-**Human-in-the-loop.** The agent is a co-pilot, not an autopilot. It handles the mechanical work autonomously and surfaces every judgment call as a structured decision card — so you stay in the driver's seat, with a clear rationale attached to every choice.
+The agent is a co-pilot, not an autopilot. It handles the mechanical work autonomously and surfaces every judgment call as a structured decision card — so you stay in the driver's seat, with a clear rationale attached to every choice.
 
-**Accessibility.** No coding required. Any analyst can complete a full cleaning session through the chat interface and walk away with production-ready outputs, audit reports, and figures. Every decision card is written in plain language, so domain experts — not just data engineers — can meaningfully review and override recommendations.
+No coding required. Any analyst can complete a full cleaning session through the chat interface and walk away with production-ready outputs, audit reports, and figures. Every decision card is written in plain language, so domain experts — not just data engineers — can meaningfully review and override recommendations.
 
-**Reproducibility.** The entire session can be re-run from scratch, shared with collaborators, or attached as a methods appendix. The agent automatically verifies that the emitted script reproduces the result before closing the session.
+The entire session can be re-run from scratch, shared with collaborators, or attached as a methods appendix. The agent automatically verifies that the emitted script reproduces the result before closing the session. Every decision has a justification — no black-box transformations, no silent drops, no undocumented changes.
 
-**Transparency.** Every decision has a justification. No black-box transformations, no silent drops, no undocumented changes.
+The JSON decision log is machine-readable, making Distill Agent a first-class component in larger multi-agent pipelines. Cleaning a similar dataset later? Upload the log and skip re-explaining the whole process.
 
-**Composability.** The JSON decision log is machine-readable, making Distill Agent a first-class component in larger multi-agent pipelines. Cleaning a similar dataset later? Upload the log and skip re-explaining the whole process.
 ---
 
 ## Interface
 
 Distill Agent runs as a no-code, chat-based web interface — no scripting required. The layout has four major panels working together:
 
-/Users/deweilin/Documents/Claude/Projects/STAT-AI project/distill-agent/assets
+![panel-illustration](assets/panel.png)
 
-![panel-illustration](distill-agent/assets/panel.png)
 ---
 
 ## Pipeline Stages
@@ -127,7 +126,7 @@ pip install -e ".[web]"        # add the web demo (optional)
 
 `pip install -e .` pulls in everything the core pipeline needs — you do not have to install the packages below by hand; they are listed so you know exactly what the app depends on and the minimum version of each.
 
-**Core dependencies** (installed automatically):
+Core dependencies (installed automatically):
 
 | Package | Min version | Used for |
 |---|---|---|
@@ -142,26 +141,29 @@ pip install -e ".[web]"        # add the web demo (optional)
 | `reportlab` | 4.1 | rendering the PDF audit report |
 | `matplotlib` | 3.8 | plots embedded in the report and flowchart |
 
-**Optional — `[web]`** (only for the browser demo): `fastapi` ≥ 0.110, `uvicorn[standard]` ≥ 0.27, `python-multipart` ≥ 0.0.9, `sse-starlette` ≥ 2.1, `anthropic` ≥ 0.39, `python-dotenv` ≥ 1.0, `pydantic` ≥ 2.6, `pypdf` ≥ 4.0.
+Optional `[web]` (only for the browser demo): `fastapi` ≥ 0.110, `uvicorn[standard]` ≥ 0.27, `python-multipart` ≥ 0.0.9, `sse-starlette` ≥ 2.1, `anthropic` ≥ 0.39, `python-dotenv` ≥ 1.0, `pydantic` ≥ 2.6, `pypdf` ≥ 4.0.
 
-**Optional — `[dev]`** (only for tests / linting): `pytest` ≥ 8.0, `pytest-cov` ≥ 4.1, `ruff` ≥ 0.4, `mypy` ≥ 1.9.
+Optional `[dev]` (only for tests / linting): `pytest` ≥ 8.0, `pytest-cov` ≥ 4.1, `ruff` ≥ 0.4, `mypy` ≥ 1.9.
 
 Every cleaning run also writes a `requirements.txt` and an `environment.yml` into its session folder, pinned to the exact versions used, so a cleaned dataset can always be reproduced in a matching environment.
 
-## Quick start
+## How do I run this?
 
-Distill Agent is meant to be used **interactively** — you stay in the loop and answer one decision card at a time, so the judgment calls that shape your data are always yours. There are two ways to work that way.
+**Try it online** — no setup needed: [distill-agent.up.railway.app](https://distill-agent.up.railway.app/)
 
-
-**In the browser (recommended).** A three-panel UI: a pipeline sidebar, a decision-card chat, and an interactive variable inspector.
+**Run it locally** — requires Python 3.10+:
 
 ```bash
-pip install -e ".[web]"
-uvicorn web.backend.app:app --port 8000      # then open http://localhost:8000
+git clone https://github.com/lindewei0423/distill-agent.git && cd distill-agent && pip install -e ".[web]" && cp .env.example .env
 ```
 
-Upload one or more data files (CSV, TSV, Excel, Parquet, JSON, SPSS, Stata, SAS) plus an optional codebook / data dictionary (PDF, Markdown, or text) — the agent reads the documentation to load the data correctly and catalogue any non-tabular companion files — or click **Try the sample dataset** to start with no upload at all. The chat-based judgment uses an Anthropic API key (`.env`, see `.env.example`).
+Then open `.env`, add your [Anthropic API key](https://console.anthropic.com/), and start the server:
 
+```bash
+uvicorn web.backend.app:app --port 8000
+```
+
+Open [http://localhost:8000](http://localhost:8000). Upload one or more data files (CSV, TSV, Excel, Parquet, JSON, SPSS, Stata, SAS) plus an optional codebook / data dictionary — or click **Try the sample dataset** to start with no upload at all.
 
 **Reuse a single stage as a library.** Every stage is independently importable — e.g. `from distill import detect_missingness` — so you can borrow one component without the whole pipeline.
 
