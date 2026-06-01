@@ -452,10 +452,16 @@
   <!-- sidebar -->
   <aside class="sidebar">
     <div class="side-head">
-      <h2 onclick="startOver()" title="Back to home">Distill Agent</h2>
+      <h2 onclick="goToLanding()" title="Back to home">Distill Agent</h2>
       <div class="ds" id="dsName">&mdash;</div>
     </div>
     <div class="side-scroll">
+      <button id="cleanAnotherBtn" onclick="goToLanding()"
+        style="display:none;width:100%;margin-bottom:6px;padding:6px 0;font-size:11.5px;
+               font-weight:600;border-radius:6px;border:1px solid var(--border2);
+               background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--font);"
+        onmouseover="this.style.background='var(--bg2)'"
+        onmouseout="this.style.background='var(--bg)'">⊕ Clean Another Dataset</button>
       <button id="startOverBtn" onclick="startOver()"
         style="display:none;width:100%;margin-bottom:10px;padding:6px 0;font-size:11.5px;
                font-weight:600;border-radius:6px;border:1px solid var(--border2);
@@ -722,6 +728,7 @@ function onUploaded(data){
   document.getElementById("app").classList.remove("hidden");
   document.getElementById("dsName").textContent=data.dataset_name||"dataset";
   document.getElementById("startOverBtn").style.display="block";
+  document.getElementById("cleanAnotherBtn").style.display="block";
   initStages();
   showIngestion(data.ingestion||{});
   onProfiled(data);
@@ -935,6 +942,7 @@ function showIngestionProposalCard(proposalId, proposal){
       S.sid=data.session_id;
       document.getElementById("dsName").textContent=data.dataset_name||"dataset";
       document.getElementById("startOverBtn").style.display="block";
+      document.getElementById("cleanAnotherBtn").style.display="block";
       showIngestion(data.ingestion||{});
       onProfiled(data);
     }catch(e){addMsg(`<b>Ingestion failed:</b> ${esc(String(e))}`);}
@@ -975,6 +983,9 @@ function showIngestion(ing){
       `and were skipped.`);
   }
 }
+
+/* ---------- go to landing (clean another dataset) ---------- */
+function goToLanding(){location.reload();}
 
 /* ---------- start over ---------- */
 async function startOver(){
