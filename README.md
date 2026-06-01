@@ -28,16 +28,11 @@ Distill Agent runs as a no-code, chat-based web interface — no scripting requi
 **Run it locally** — requires Python 3.10+:
 
 ```bash
-git clone https://github.com/lindewei0423/distill-agent.git && cd distill-agent && pip install -e ".[web]" && cp .env.example .env
-```
-
-Then open `.env`, add your [Anthropic API key](https://console.anthropic.com/), and start the server:
-
-```bash
+git clone https://github.com/lindewei0423/distill-agent.git && cd distill-agent && pip install -e ".[web]"
 uvicorn web.backend.app:app --port 8000
 ```
 
-Open [http://localhost:8000](http://localhost:8000). Upload one or more data files (ZIP, CSV, TSV, Excel, Parquet, JSON, SPSS, Stata, SAS) plus an optional codebook / data dictionary — or click **Try the sample dataset** to start with no upload at all. For data with multiple files, we reccomend uploading the entire ZIP file.
+Open [http://localhost:8000](http://localhost:8000). Upload one or more data files (ZIP, CSV, TSV, Excel, Parquet, JSON, SPSS, Stata, SAS) plus an optional codebook / data dictionary — or click **Try the sample dataset** to start with no upload at all. For data with multiple files, we recommend uploading the entire ZIP file.
 
 
 ---
