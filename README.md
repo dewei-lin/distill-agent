@@ -13,6 +13,35 @@ We built **Distill Agent** to be the distillation device for data. AI handles th
 
 ---
 
+## Interface
+
+Distill Agent runs as a no-code, chat-based web interface — no scripting required. The layout has four major panels working together:
+
+![panel-illustration](assets/panel.png)
+
+---
+
+## How do I run this?
+
+**Try it online** — no setup needed: [distill-agent.up.railway.app](https://distill-agent.up.railway.app/)
+
+**Run it locally** — requires Python 3.10+:
+
+```bash
+git clone https://github.com/lindewei0423/distill-agent.git && cd distill-agent && pip install -e ".[web]" && cp .env.example .env
+```
+
+Then open `.env`, add your [Anthropic API key](https://console.anthropic.com/), and start the server:
+
+```bash
+uvicorn web.backend.app:app --port 8000
+```
+
+Open [http://localhost:8000](http://localhost:8000). Upload one or more data files (ZIP, CSV, TSV, Excel, Parquet, JSON, SPSS, Stata, SAS) plus an optional codebook / data dictionary — or click **Try the sample dataset** to start with no upload at all. For data with multiple files, we reccomend uploading the entire ZIP file.
+
+
+---
+
 ## What to expect from Distill Agent?
 
 ★ **Efficiency.** Analysts spend time on judgment calls that require expertise — not on boilerplate inspection and imputation code. At the end of every session, a self-contained Python script is generated so you can reproduce the clean dataset from your original upload with a single command.
@@ -27,13 +56,6 @@ We built **Distill Agent** to be the distillation device for data. AI handles th
 
 ---
 
-## Interface
-
-Distill Agent runs as a no-code, chat-based web interface — no scripting required. The layout has four major panels working together:
-
-![panel-illustration](assets/panel.png)
-
----
 
 ## Pipeline Stages
 
@@ -80,6 +102,8 @@ A structured JSON log (`decisions.json`) of every decision — variable, issue, 
 
 ### (e) Reproducible cleaning script
 A complete, standalone `clean_script.py` that replays every step from raw data to clean output with no dependency on the agent — only pandas / numpy (and scikit-learn when MICE is used). Running `python clean_script.py <input>` regenerates exactly the artifacts selected during the session. After it is written, the session **automatically replays it against the original source and verifies the output matches** before hand-off; the result is surfaced in the report.
+
+
 ---
 
 ## Architecture
@@ -112,19 +136,7 @@ Each worker is independent and reusable: the missingness component, for example,
 
 ---
 
-## Installation
-
-Requires Python 3.10 or newer.
-
-```bash
-git clone https://github.com/lindewei0423/distill-agent.git
-cd distill-agent
-pip install -e .               # core library
-pip install -e ".[dev]"        # add test + lint tooling (optional)
-pip install -e ".[web]"        # add the web demo (optional)
-```
-
-`pip install -e .` pulls in everything the core pipeline needs — you do not have to install the packages below by hand; they are listed so you know exactly what the app depends on and the minimum version of each.
+## Requirements
 
 Core dependencies (installed automatically):
 
@@ -147,35 +159,6 @@ Optional `[dev]` (only for tests / linting): `pytest` ≥ 8.0, `pytest-cov` ≥ 
 
 Every cleaning run also writes a `requirements.txt` and an `environment.yml` into its session folder, pinned to the exact versions used, so a cleaned dataset can always be reproduced in a matching environment.
 
-## How do I run this?
-
-**Try it online** — no setup needed: [distill-agent.up.railway.app](https://distill-agent.up.railway.app/)
-
-**Run it locally** — requires Python 3.10+:
-
-```bash
-git clone https://github.com/lindewei0423/distill-agent.git && cd distill-agent && pip install -e ".[web]" && cp .env.example .env
-```
-
-Then open `.env`, add your [Anthropic API key](https://console.anthropic.com/), and start the server:
-
-```bash
-uvicorn web.backend.app:app --port 8000
-```
-
-Open [http://localhost:8000](http://localhost:8000). Upload one or more data files (CSV, TSV, Excel, Parquet, JSON, SPSS, Stata, SAS) plus an optional codebook / data dictionary — or click **Try the sample dataset** to start with no upload at all.
-
-**Reuse a single stage as a library.** Every stage is independently importable — e.g. `from distill import detect_missingness` — so you can borrow one component without the whole pipeline.
-
-## Tests
-
-```bash
-pytest
-```
-
-The suite covers the core library end to end.
-
----
 
 ## Repository Structure
 
