@@ -34,6 +34,14 @@ uvicorn web.backend.app:app --port 8000
 
 Open [http://localhost:8000](http://localhost:8000). Upload one or more data files (ZIP, CSV, TSV, Excel, Parquet, JSON, SPSS, Stata, SAS) plus an optional codebook / data dictionary — or click **Try the sample dataset** to start with no upload at all. For data with multiple files, we recommend uploading the entire ZIP file.
 
+### Note for STAI-X Challenge 2026 users
+
+We recommend directly uploading the zip file downloaded from Kaggle to the app, then you will be able to use one line script to derive the clean data:
+
+```bash
+cd to\your\path
+python clean_script.py stai-x-challenge-2026.zip
+```
 
 ---
 
