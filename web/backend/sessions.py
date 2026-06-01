@@ -107,6 +107,10 @@ class WebSession:
         self.profiles: dict[str, Any] = {}
         self.stage_cards: dict[Stage, list[DecisionCard]] = {}
         self.finalized = False
+        # Reproducibility check runs in a background thread after finalize
+        # returns so it never blocks the HTTP response.
+        # States: "pending" | "running" | "done"
+        self._repro_status: dict = {"state": "pending"}
         # Documentation text + ingestion report, set by the upload flow.
         self.doc_text = doc_text or ""
         self.ingestion = ingestion or {}
@@ -568,8 +572,17 @@ class WebSession:
         # Capture variable descriptions (doc-sourced or AI-inferred) so the
         # audit report documents what each variable means.
         self.populate_descriptions()
-        result = write_all_outputs(self.state, self.session, repro_check_timeout=30)
+        # Skip the reproducibility check here — it runs in a background thread
+        # (see _run_repro_background) so the HTTP response returns immediately.
+        result = write_all_outputs(self.state, self.session, run_repro=False)
         self.finalized = True
+        # Kick off the repro check in the background.
+        self._repro_status = {"state": "running"}
+        import threading as _threading
+        _threading.Thread(
+            target=self._run_repro_background,
+            daemon=True,
+        ).start()
         artifacts: dict[str, str] = {}
         for k, v in result["artifacts"].items():
             if isinstance(v, Path):
@@ -581,11 +594,10 @@ class WebSession:
                 for fmt, path in v.items():
                     if isinstance(path, (str, Path)):
                         artifacts[f"{k}_{fmt}"] = Path(path).name
-        repro = result.get("checks", {}).get("reproducibility")
         return {
             "artifacts": artifacts,
             "errors": result["errors"],
-            "reproducibility_check": repro,
+            "reproducibility_check": None,
             "summary": {
                 "dataset": self.state.input_path.name,
                 "rows_in": self.state.n_rows_in,
@@ -599,6 +611,24 @@ class WebSession:
                 ),
             },
         }
+
+    # ----- background reproducibility check -----
+
+    def _run_repro_background(self) -> None:
+        """Run the reproducibility check in a daemon thread and store the result."""
+        from distill.outputs import run_reproducibility_check
+        try:
+            result = run_reproducibility_check(self.state, self.session, timeout=60)
+            self._repro_status = {"state": "done", "result": result}
+        except Exception as e:
+            self._repro_status = {
+                "state": "done",
+                "result": {"match": False, "crashed": True, "error": str(e)},
+            }
+
+    def get_repro_status(self) -> dict:
+        """Return the current reproducibility check status for polling."""
+        return dict(self._repro_status)
 
     # ----- variable inspector data (right panel) -----
 

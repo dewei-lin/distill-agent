@@ -78,6 +78,7 @@ def write_all_outputs(
     *,
     skip: tuple[str, ...] = (),
     repro_check_timeout: int = 120,
+    run_repro: bool = True,
 ) -> dict[str, Any]:
     """Produce every output artifact possible, swallowing per-writer errors.
 
@@ -161,7 +162,7 @@ def write_all_outputs(
             errors["script"] = f"{type(e).__name__}: {e}"
 
     checks: dict[str, Any] = {}
-    if "script" not in skip and "clean_script" in artifacts:
+    if run_repro and "script" not in skip and "clean_script" in artifacts:
         try:
             repro = run_reproducibility_check(state, session, timeout=repro_check_timeout)
             checks["reproducibility"] = repro

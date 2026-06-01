@@ -1792,6 +1792,70 @@ function showFormatSelector(){
   };
 }
 
+/* ---------- reproducibility check polling ---------- */
+async function pollReproCheck(sid, intervalMs=2500, maxWaitMs=90000){
+  const placeholder=document.createElement("div");
+  placeholder.className="msg agent";placeholder.style.maxWidth="94%";
+  placeholder.innerHTML=`<div class="bubble" style="border-left:3px solid var(--text2,#888);padding-left:14px;font-size:13px;color:var(--fg2,#888)">
+    ⏳ <b>Reproducibility check running…</b> verifying the generated script reproduces the clean data.
+  </div>`;
+  addRaw(placeholder);
+  const start=Date.now();
+  while(Date.now()-start<maxWaitMs){
+    await new Promise(r=>setTimeout(r,intervalMs));
+    try{
+      const resp=await fetch(API+`/api/session/${sid}/repro_check`);
+      if(!resp.ok) continue;
+      const s=await resp.json();
+      if(s.state==="done"){
+        placeholder.innerHTML=renderReproResult(s.result||{});
+        return;
+      }
+    }catch(_){}
+  }
+  // Timed out waiting for the background check.
+  placeholder.innerHTML=`<div class="bubble" style="border-left:3px solid var(--blue,#3a6ea5);padding-left:14px;font-size:13px">
+    ⏱ <b>Reproducibility check timed out — not a failure</b><br>
+    <span style="color:var(--fg2,#888)">The replay didn't finish within the verification time limit.
+    You can run <code>python clean_script.py</code> manually to confirm.</span>
+  </div>`;
+}
+
+function renderReproResult(rc){
+  if(rc.match){
+    return`<div class="bubble" style="border-left:3px solid var(--green,#2e7d32);padding-left:14px;font-size:13px">
+      ✓ <b>Reproducibility check passed</b> — script replay matches the session output exactly
+      (${(rc.rows_replay||0).toLocaleString()} rows × ${rc.cols_replay||0} cols).
+    </div>`;
+  } else if(rc.timed_out){
+    return`<div class="bubble" style="border-left:3px solid var(--blue,#3a6ea5);padding-left:14px;font-size:13px">
+      ⏱ <b>Reproducibility check timed out — not a failure</b><br>
+      <span style="color:var(--fg2,#888)">The replay didn't finish within the verification time limit.
+      Run <code>python clean_script.py</code> yourself to confirm.</span>
+    </div>`;
+  } else if(rc.crashed){
+    const stderrHtml=rc.stderr?`<pre style="font-size:10px;max-height:160px;overflow:auto;background:var(--bg2);padding:6px;border-radius:4px;margin-top:6px">${esc(rc.stderr.slice(0,1200))}</pre>`:"";
+    return`<div class="bubble" style="border-left:3px solid var(--amber,#e07b39);padding-left:14px;font-size:13px">
+      ⚠ <b>Reproducibility check — script crashed</b><br>
+      <span style="color:var(--fg2,#888)">Script exited with code ${rc.returncode}. The script is still valid for the original data.</span>
+      ${stderrHtml}
+    </div>`;
+  } else {
+    const diff=rc.col_diff||{};
+    const missing=(diff.only_in_session||[]).join(", ")||"none";
+    const extra=(diff.only_in_replay||[]).join(", ")||"none";
+    const stderr=rc.stderr?`<br><pre style="font-size:10px;max-height:120px;overflow:auto;background:var(--bg2);padding:6px;border-radius:4px">${esc(rc.stderr.slice(0,800))}</pre>`:"";
+    return`<div class="bubble" style="border-left:3px solid var(--amber,#e07b39);padding-left:14px;font-size:13px">
+      ⚠ <b>Reproducibility check mismatch</b><br>
+      Session: ${(rc.rows_session||0).toLocaleString()} rows × ${rc.cols_session||0} cols &nbsp;·&nbsp;
+      Replay: ${(rc.rows_replay||0).toLocaleString()} rows × ${rc.cols_replay||0} cols<br>
+      Cols only in session: <code>${esc(missing)}</code><br>
+      Cols only in replay: <code>${esc(extra)}</code>
+      ${stderr}
+    </div>`;
+  }
+}
+
 /* ---------- finalize ---------- */
 async function finalize(outputFormats){
   const preferredFmt=(outputFormats||["csv"])[0];
@@ -1851,52 +1915,8 @@ async function finalize(outputFormats){
     ${s.n_decisions.toLocaleString()} decisions logged,
     ${s.n_overrides.toLocaleString()} of them your own choice.
     Download your artifacts in the sidebar.`);
-  // Reproducibility check result
-  if(data.reproducibility_check){
-    const rc=data.reproducibility_check;
-    const node=document.createElement("div");
-    node.className="msg agent";node.style.maxWidth="94%";
-    if(rc.match){
-      node.innerHTML=`<div class="bubble" style="border-left:3px solid var(--green,#2e7d32);padding-left:14px;font-size:13px">
-        ✓ <b>Reproducibility check passed</b> — script replay matches the session output exactly
-        (${rc.rows_replay.toLocaleString()} rows × ${rc.cols_replay} cols).
-      </div>`;
-    } else if(rc.timed_out){
-      // A timeout is NOT a failure — the replay simply ran longer than the
-      // verification budget. The script itself is unverified, not wrong.
-      node.innerHTML=`<div class="bubble" style="border-left:3px solid var(--blue,#3a6ea5);padding-left:14px;font-size:13px">
-        ⏱ <b>Reproducibility check timed out — not a failure</b><br>
-        <span style="color:var(--fg2,#888)">The replay didn't finish within the verification time limit, so the
-        check couldn't confirm an exact match. This is common for large datasets or heavier imputation (MICE) and does
-        not mean the script is incorrect — only that it wasn't verified automatically. You can re-run
-        <code>python clean_script.py</code> yourself to confirm.</span>
-      </div>`;
-    } else if(rc.crashed){
-      const stderrHtml=rc.stderr?`<pre style="font-size:10px;max-height:160px;overflow:auto;background:var(--bg2);padding:6px;border-radius:4px;margin-top:6px">${esc(rc.stderr.slice(0,1200))}</pre>`:"";
-      const hint=`Script exited with code ${rc.returncode}.`;
-      node.innerHTML=`<div class="bubble" style="border-left:3px solid var(--amber,#e07b39);padding-left:14px;font-size:13px">
-        ⚠ <b>Reproducibility check — script crashed</b><br>
-        <span style="color:var(--fg2,#888)">${esc(hint)} The generated script ran into an error when replayed against the source file.
-        This usually means the source file schema changed after the session was created, or a required dependency is missing.
-        The script is still valid for the original data.</span>
-        ${stderrHtml}
-      </div>`;
-    } else {
-      const diff=rc.col_diff||{};
-      const missing=(diff.only_in_session||[]).join(", ")||"none";
-      const extra=(diff.only_in_replay||[]).join(", ")||"none";
-      const stderr=rc.stderr?`<br><pre style="font-size:10px;max-height:120px;overflow:auto;background:var(--bg2);padding:6px;border-radius:4px">${esc(rc.stderr.slice(0,800))}</pre>`:"";
-      node.innerHTML=`<div class="bubble" style="border-left:3px solid var(--amber,#e07b39);padding-left:14px;font-size:13px">
-        ⚠ <b>Reproducibility check mismatch</b><br>
-        Session: ${rc.rows_session.toLocaleString()} rows × ${rc.cols_session} cols &nbsp;·&nbsp;
-        Replay: ${rc.rows_replay.toLocaleString()} rows × ${rc.cols_replay} cols<br>
-        Cols only in session: <code>${esc(missing)}</code><br>
-        Cols only in replay: <code>${esc(extra)}</code>
-        ${stderr}
-      </div>`;
-    }
-    addRaw(node);
-  }
+  // Reproducibility check runs in the background — poll until done.
+  pollReproCheck(S.sid);
   if(data.usage_advice){
     // Render LLM usage advice as a styled card below the summary.
     const node=document.createElement("div");

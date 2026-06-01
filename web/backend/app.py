@@ -557,6 +557,11 @@ def status(sid: str) -> dict:
     return _session(sid).status()
 
 
+@app.get("/api/session/{sid}/repro_check")
+def repro_check(sid: str) -> dict:
+    return _session(sid).get_repro_status()
+
+
 @app.get("/api/session/{sid}/variable/{name}")
 def variable(sid: str, name: str) -> dict:
     ws = _session(sid)
